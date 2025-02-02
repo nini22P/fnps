@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:vita_dl/pages/contents_list.dart';
-import 'package:vita_dl/pages/download.dart';
+import 'package:vita_dl/pages/downloads.dart';
 import 'package:vita_dl/pages/settings.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
 
@@ -29,7 +29,7 @@ class HomePage extends HookWidget {
         children: const [
           ContentsList(types: ['app']),
           ContentsList(types: ['theme']),
-          // Download(),
+          Downloads(),
           Settings(),
         ],
       ),
@@ -53,10 +53,10 @@ class HomePage extends HookWidget {
             icon: const Icon(Icons.palette),
             label: t.theme,
           ),
-          // BottomNavigationBarItem(
-          //   icon: const Icon(Icons.download),
-          //   label: t.download,
-          // ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.download),
+            label: t.download,
+          ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.settings),
             label: t.settings,

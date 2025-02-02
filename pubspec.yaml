@@ -82,6 +82,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env
+    - assets/pkg2zip-linux-aarch64/pkg2zip
+    - assets/pkg2zip-windows-x64/pkg2zip.exe
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -20,7 +20,7 @@ class DatabaseHelper {
   }
 
   Future<String> getDatabasePath() async =>
-      join(await getDataPath(), 'config', 'contents.db');
+      join(await getAppPath(), 'config', 'contents.db');
 
   Future<Database> _initDB(String fileName) async {
     String path = await getDatabasePath();

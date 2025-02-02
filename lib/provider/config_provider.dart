@@ -11,7 +11,7 @@ class ConfigProvider with ChangeNotifier {
   Config get config => _config;
 
   Future<String> getConfigPath() async =>
-      join(await getDataPath(), 'config', 'config.json');
+      join(await getAppPath(), 'config', 'config.json');
 
   Future<void> loadConfig() async {
     final file = File(await getConfigPath());
