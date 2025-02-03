@@ -6,9 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 import 'package:vita_dl/database/database_helper.dart';
-import 'package:vita_dl/model/config_model.dart';
+import 'package:vita_dl/models/config.dart';
 import 'package:vita_dl/provider/config_provider.dart';
-import 'package:vita_dl/model/content_model.dart';
+import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
 import 'package:vita_dl/utils/uri.dart';
 
@@ -27,7 +27,7 @@ class Settings extends HookWidget {
     final DatabaseHelper dbHelper = DatabaseHelper();
 
     Future<void> updateSource(
-        String source, String type, String url, String updateTime) async {
+        String source, SourceType type, String url, DateTime updateTime) async {
       if (source == 'app') {
         configProvider.updateConfig(configProvider.config.copyWith(
             app: Source(type: type, updateTime: updateTime, url: url)));
@@ -49,7 +49,7 @@ class Settings extends HookWidget {
           .updateConfig(configProvider.config.copyWith(hmacKey: hmacKey));
     }
 
-    Future<void> readFile(String filePath, String type) async {
+    Future<void> readFile(String filePath, ContentType type) async {
       final file = File(filePath);
       if (await file.exists()) {
         String content = await file.readAsString();
@@ -73,18 +73,19 @@ class Settings extends HookWidget {
                 rowMap[headers[i]] = '';
               }
             }
-            return Content.convert(rowMap);
+            return Content.convert(rowMap).copyWith(type: type);
           }).toList();
         }
-        await dbHelper.deleteContentsByTypes([type]);
+        await dbHelper.deleteContentsByTypes([type.name]);
         await dbHelper.insertContents(contents);
-        await updateSource(type, 'local', '', DateTime.now().toIso8601String());
+        await updateSource(
+            type.name, SourceType.local, '', DateTime.now().toUtc());
       } else {
         log('File does not exist.');
       }
     }
 
-    Future<void> pickTsvFile(String type) async {
+    Future<void> pickTsvFile(ContentType type) async {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['tsv', 'csv'],
@@ -111,27 +112,43 @@ class Settings extends HookWidget {
           children: [
             ListTile(
               title: Text(t.updateAppList),
-              subtitle: Text(
-                  config.app.updateTime.replaceAll('T', ' ').split('.').first),
-              onTap: () => pickTsvFile('app'),
+              subtitle: config.app.updateTime == null
+                  ? const Text('')
+                  : Text(config.app.updateTime!
+                      .toLocal()
+                      .toIso8601String()
+                      .replaceAll('T', ' ')
+                      .split('.')
+                      .first),
+              onTap: () => pickTsvFile(ContentType.app),
             ),
             ListTile(
               title: Text(t.updateDLCList),
-              subtitle: Text(
-                  config.dlc.updateTime.replaceAll('T', ' ').split('.').first),
-              onTap: () => pickTsvFile('dlc'),
+              subtitle: config.dlc.updateTime == null
+                  ? const Text('')
+                  : Text(config.dlc.updateTime!
+                      .toLocal()
+                      .toIso8601String()
+                      .replaceAll('T', ' ')
+                      .split('.')
+                      .first),
+              onTap: () => pickTsvFile(ContentType.dlc),
             ),
             ListTile(
               title: Text(t.updateThemeList),
-              subtitle: Text(config.theme.updateTime
-                  .replaceAll('T', ' ')
-                  .split('.')
-                  .first),
-              onTap: () => pickTsvFile('theme'),
+              subtitle: config.theme.updateTime == null
+                  ? const Text('')
+                  : Text(config.theme.updateTime!
+                      .toLocal()
+                      .toIso8601String()
+                      .replaceAll('T', ' ')
+                      .split('.')
+                      .first),
+              onTap: () => pickTsvFile(ContentType.theme),
             ),
             ListTile(
               title: Text(t.hmacKey),
-              subtitle: Text(config.hmacKey),
+              subtitle: config.hmacKey == null ? null : Text(config.hmacKey!),
               onTap: () => showDialog<String>(
                 context: context,
                 builder: (BuildContext context) => AlertDialog(

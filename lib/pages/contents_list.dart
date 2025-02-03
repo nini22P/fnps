@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:provider/provider.dart';
 import 'package:vita_dl/database/database_helper.dart';
-import 'package:vita_dl/model/config_model.dart';
-import 'package:vita_dl/model/content_model.dart';
+import 'package:vita_dl/models/config.dart';
+import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
 
@@ -48,10 +48,10 @@ class ContentsList extends HookWidget {
               (content.name
                       .toLowerCase()
                       .contains(searchText.value.toLowerCase()) ||
-                  content.contentID
+                  '${content.contentID}'
                       .toLowerCase()
                       .contains(searchText.value.toLowerCase()) ||
-                  content.originalName
+                  '${content.originalName}'
                       .toLowerCase()
                       .contains(searchText.value.toLowerCase())) &&
               selectedRegions.contains(content.region))
@@ -132,18 +132,19 @@ class ContentsList extends HookWidget {
                 subtitle: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.circular(99),
+                    if (content.region != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue,
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: Text(
+                          '${content.region}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
                       ),
-                      child: Text(
-                        content.region,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
                     const SizedBox(width: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(

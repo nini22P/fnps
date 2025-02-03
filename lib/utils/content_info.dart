@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:vita_dl/models/content.dart';
 import 'package:xml/xml.dart';
 import 'package:crypto/crypto.dart';
 
@@ -14,18 +15,6 @@ Map<String, String> regionMap = {
   "HP": "hk/zh",
 };
 
-class Update {
-  final String version;
-  final String size;
-  final String url;
-
-  Update({
-    required this.version,
-    required this.size,
-    required this.url,
-  });
-}
-
 class ContentInfo {
   final List<String> images;
   final String desc;
@@ -36,8 +25,9 @@ class ContentInfo {
   });
 }
 
-String getContentIcon(String contentID) =>
-    "$baseApiUrl/${regionMap[contentID.substring(0, 2)]}/999/$contentID/image";
+String? getContentIconUrl(Content content) => content.contentID == null
+    ? null
+    : "$baseApiUrl/${regionMap[content.contentID?.substring(0, 2)]}/999/${content.contentID}/image";
 
 Future<ContentInfo> getContentInfo(String contentID) async {
   final infoUrl =
@@ -86,7 +76,7 @@ String getUpdateXmlLink(String titleID, String hmacKey) {
   return "http://gs-sec.ww.np.dl.playstation.net/pl/np/$titleID/$hash/$titleID-ver.xml";
 }
 
-Future<Update?> getUpdateLink(String titleID, String hmacKey) async {
+Future<Content?> getUpdateLink(String titleID, String hmacKey) async {
   var xmlLink = getUpdateXmlLink(titleID, hmacKey);
 
   try {
@@ -108,7 +98,14 @@ Future<Update?> getUpdateLink(String titleID, String hmacKey) async {
       final size = package.getAttribute('size') ?? '';
       final url = package.getAttribute('url') ?? '';
 
-      return Update(version: version, size: size, url: url);
+      return Content(
+        type: ContentType.update,
+        titleID: titleID,
+        name: titleID,
+        appVersion: version,
+        fileSize: int.tryParse(size),
+        pkgDirectLink: url,
+      );
     }
   } catch (e) {
     return null;

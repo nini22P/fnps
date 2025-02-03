@@ -2,17 +2,17 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/services.dart';
-import 'package:vita_dl/utils/storage.dart';
+import 'package:vita_dl/utils/path.dart';
 
-Future<String?> getPkgZipName(String path) async {
-  final pkg2zipPath = await getPkg2zipPath();
-  final workingPath = path.substring(0, path.lastIndexOf('/'));
+Future<String?> getPkgName(List<String> path) async {
+  final List<String> pkg2zipPath = await getPkg2zipPath();
+  final List<String> workingPath = path.sublist(0, path.length - 1);
 
   final process = await Process.start(
-    pkg2zipPath,
-    ['-l', path],
+    pathJoin(pkg2zipPath),
+    ['-l', pathJoin(path)],
     runInShell: true,
-    workingDirectory: workingPath,
+    workingDirectory: pathJoin(workingPath),
   );
 
   String? pkgName;
@@ -31,22 +31,22 @@ Future<String?> getPkgZipName(String path) async {
 }
 
 Future<bool> pkg2zip({
-  required String path,
+  required List<String> path,
   String? zRIF,
   bool? extract,
 }) async {
-  final pkg2zipPath = await getPkg2zipPath();
-  final workingPath = path.substring(0, path.lastIndexOf('/'));
+  final List<String> pkg2zipPath = await getPkg2zipPath();
+  final List<String> workingPath = path.sublist(0, path.length - 1);
 
   var process = await Process.start(
-    pkg2zipPath,
+    pathJoin(pkg2zipPath),
     [
-      if (extract != null) '-x',
-      path,
+      if (extract == true) '-x',
+      pathJoin(path),
       if (zRIF != null) zRIF,
     ],
     runInShell: true,
-    workingDirectory: workingPath,
+    workingDirectory: pathJoin(workingPath),
   );
 
   process.stdout.transform(utf8.decoder).forEach((line) {
@@ -62,14 +62,14 @@ Future<bool> pkg2zip({
   return exitCode == 0;
 }
 
-Future<void> copyPkg2zip(String path) async {
+Future<void> copyPkg2zip(List<String> path) async {
   const aarch64SourcePath = 'assets/pkg2zip-linux-aarch64/pkg2zip';
   const windowsX64SourcePath = 'assets/pkg2zip-windows-x64/pkg2zip.exe';
 
   final sourcePath =
       Platform.isWindows ? windowsX64SourcePath : aarch64SourcePath;
 
-  final file = File(path);
+  final file = File(pathJoin(path));
   if (!await file.exists()) {
     final byteData = await rootBundle.load(sourcePath);
     final buffer = byteData.buffer.asUint8List();
@@ -78,13 +78,13 @@ Future<void> copyPkg2zip(String path) async {
   }
 }
 
-Future<bool> chmodPkg2zip(String path) async {
-  final workingPath = path.substring(0, path.lastIndexOf('/'));
+Future<bool> chmodPkg2zip(List<String> path) async {
+  final workingPath = path.sublist(0, path.length - 1);
   var chmodResult = await Process.run(
     'chmod',
-    ['+x', path],
+    ['+x', pathJoin(path)],
     runInShell: true,
-    workingDirectory: workingPath,
+    workingDirectory: pathJoin(workingPath),
   );
   log('chmod exit code: ${chmodResult.exitCode}');
 

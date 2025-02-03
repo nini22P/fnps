@@ -1,8 +1,6 @@
-import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:vita_dl/utils/storage.dart';
-
-import '../model/content_model.dart';
+import 'package:vita_dl/models/content.dart';
+import 'package:vita_dl/utils/path.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -15,23 +13,23 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('contents.db');
+    _database = await _initDB();
     return _database!;
   }
 
-  Future<String> getDatabasePath() async =>
-      join(await getAppPath(), 'config', 'contents.db');
+  Future<List<String>> getDatabasePath() async =>
+      [...(await getAppPath()), 'config', 'contents.db'];
 
-  Future<Database> _initDB(String fileName) async {
-    String path = await getDatabasePath();
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+  Future<Database> _initDB() async {
+    final path = await getDatabasePath();
+    return await openDatabase(pathJoin(path), version: 1, onCreate: _createDB);
   }
 
   Future _createDB(Database db, int version) async {
     await db.execute('''
       CREATE TABLE contents(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        type TEXT, -- app | dlc | theme
+        type TEXT, -- app | update | dlc | theme
         titleID TEXT,
         region TEXT,
         name TEXT,
@@ -52,7 +50,7 @@ class DatabaseHelper {
     final db = await database;
     await db.insert(
       'contents',
-      content.toMap(),
+      content.toJson(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -64,7 +62,7 @@ class DatabaseHelper {
     for (var content in contents) {
       batch.insert(
         'contents',
-        content.toMap(),
+        content.toJson(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
@@ -97,7 +95,7 @@ class DatabaseHelper {
     );
 
     return List.generate(maps.length, (i) {
-      return Content.fromMap(maps[i]);
+      return Content.fromJson(maps[i]);
     });
   }
 
