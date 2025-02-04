@@ -11,3 +11,5 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+app/src/main/jniLibs/arm64-v8a/pkg2zip.so

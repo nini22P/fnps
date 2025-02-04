@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.github.nini22p" "\0"
+            VALUE "CompanyName", "nini22P" "\0"
             VALUE "FileDescription", "vita_dl" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "vita_dl" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2024 com.github.nini22p. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2024 nini22P. All rights reserved." "\0"
             VALUE "OriginalFilename", "vita_dl.exe" "\0"
             VALUE "ProductName", "vita_dl" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

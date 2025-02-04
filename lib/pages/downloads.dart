@@ -42,9 +42,10 @@ class Downloads extends HookWidget {
               Content.fromJson(jsonDecode(records[index].task.metaData));
           final pkgName = await getPkgName(path);
           final result = await pkg2zip(
-              path: path,
-              extract: content.type == ContentType.theme ? false : true,
-              zRIF: content.zRIF);
+            path: path,
+            extract: content.type == ContentType.theme ? false : true,
+            zRIF: content.zRIF,
+          );
           print(result);
         },
       ),

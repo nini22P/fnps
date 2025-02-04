@@ -31,7 +31,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = 28
+        targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         ndk {
@@ -60,3 +60,11 @@ android {
 flutter {
     source = "../.."
 }
+
+task copyPkg2zip(type: Copy) {
+    from("../../assets/pkg2zip-linux-aarch64/pkg2zip")
+    into("./src/main/jniLibs/arm64-v8a")
+    rename("pkg2zip", "pkg2zip.so")
+}
+
+preBuild.dependsOn(copyPkg2zip)
