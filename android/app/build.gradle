@@ -64,7 +64,7 @@ flutter {
 task copyPkg2zip(type: Copy) {
     from("../../assets/pkg2zip-linux-aarch64/pkg2zip")
     into("./src/main/jniLibs/arm64-v8a")
-    rename("pkg2zip", "pkg2zip.so")
+    rename("pkg2zip", "libpkg2zip.so")
 }
 
 preBuild.dependsOn(copyPkg2zip)

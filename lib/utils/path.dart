@@ -26,7 +26,7 @@ Future<List<String>> getPkg2zipPath() async {
   final appPath = await getAppPath();
   final targetFolder = Platform.isAndroid ? nativeLibraryPath : appPath;
   final path = Platform.isAndroid
-      ? [...targetFolder, 'pkg2zip.so']
+      ? [...targetFolder, 'libpkg2zip.so']
       : Platform.isWindows
           ? [...targetFolder, 'pkg2zip.exe']
           : [...targetFolder, 'pkg2zip'];
