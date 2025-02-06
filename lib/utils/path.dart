@@ -12,6 +12,8 @@ Future<List<String>> getAppPath() async {
   return [...path, 'VitaDL'];
 }
 
+Future<List<String>> getConfigPath() async => [...await getAppPath(), 'config'];
+
 Future<List<String>> getDownloadsPath() async {
   final appPath = await getAppPath();
   final path = [...appPath, 'downloads'];

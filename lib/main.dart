@@ -1,19 +1,34 @@
 import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:vita_dl/hive/hive_box_names.dart';
+import 'package:vita_dl/hive_registrar.g.dart';
+import 'package:vita_dl/models/download_item.dart';
 import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/pages/content_page.dart';
 import 'package:vita_dl/pages/home_page.dart';
+import 'package:vita_dl/utils/downloader.dart';
+import 'package:vita_dl/utils/path.dart';
 
 Future<void> main() async {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
   await dotenv.load(fileName: '.env');
+
+  final configPath = await getConfigPath();
+
+  await Hive.initFlutter(pathJoin(configPath));
+  Hive.registerAdapters();
+  await Hive.openBox<DownloadItem>(downloadBoxName);
+
   await FileDownloader().trackTasks();
+  await Downloader.instance.init();
 
   runApp(
     ChangeNotifierProvider(
@@ -23,7 +38,7 @@ Future<void> main() async {
   );
 }
 
-class VitaDL extends StatelessWidget {
+class VitaDL extends HookWidget {
   const VitaDL({super.key});
 
   @override

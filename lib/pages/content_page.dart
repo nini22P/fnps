@@ -1,19 +1,19 @@
-import 'dart:convert';
-import 'dart:developer';
-import 'package:background_downloader/background_downloader.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_html/flutter_html.dart' as html;
+import 'package:hive_ce/hive.dart';
 import 'package:provider/provider.dart';
 import 'package:vita_dl/database/database_helper.dart';
+import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/content.dart';
+import 'package:vita_dl/models/download_item.dart';
 import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/utils/content_info.dart';
+import 'package:vita_dl/utils/downloader.dart';
 import 'package:vita_dl/utils/file_size_convert.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
-import 'package:vita_dl/utils/path.dart';
 import 'package:vita_dl/utils/uri.dart';
 
 class ContentPage extends HookWidget {
@@ -27,6 +27,11 @@ class ContentPage extends HookWidget {
     final configProvider = Provider.of<ConfigProvider>(context);
     final config = configProvider.config;
     String? hmacKey = config.hmacKey;
+
+    final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
+
+    final downloader = Downloader.instance;
+    final fileDownloader = Downloader.instance.fileDownloader;
 
     Future<List<Content>> getDLCs() async {
       if (content.type != ContentType.app) {
@@ -76,38 +81,6 @@ class ContentPage extends HookWidget {
           SnackBar(content: Text(description)),
         );
       }
-    }
-
-    Future<void> downloadContent(Content content) async {
-      final url = content.pkgDirectLink;
-      if (url == null) {
-        return;
-      }
-
-      final List<String> downloadsPath = await getDownloadsPath();
-      final List<String> directory = [...downloadsPath, content.titleID];
-
-      // if (!await Directory(directory).exists()) {
-      //   await Directory(directory).create(recursive: true);
-      // }
-
-      final task = DownloadTask(
-        url: url,
-        filename: '${content.contentID}.pkg',
-        baseDirectory: BaseDirectory.root,
-        directory: pathJoin(directory),
-        updates: Updates.statusAndProgress,
-        requiresWiFi: true,
-        retries: 5,
-        allowPause: true,
-        metaData: jsonEncode(content.toJson()),
-      );
-
-      await FileDownloader().download(
-        task,
-        onProgress: (progress) => log('Progress: ${progress * 100}%'),
-        onStatus: (status) => log('Status: $status'),
-      );
     }
 
     return Scaffold(
@@ -220,10 +193,10 @@ class ContentPage extends HookWidget {
                                 '${t.version}: ${update?.appVersion ?? content.appVersion}'),
                           if (content.fileSize != 0)
                             Text(
-                                '${t.size}: ${fileSizeConvert(content.fileSize.toString())} MB'),
+                                '${t.size}: ${fileSizeConvert(content.fileSize ?? 0)} MB'),
                           if (update?.fileSize != null)
                             Text(
-                                '${t.updateSize}: ${fileSizeConvert(update!.fileSize.toString())} MB'),
+                                '${t.updateSize}: ${fileSizeConvert(update!.fileSize ?? 0)} MB'),
                         ],
                       ),
                     ],
@@ -237,7 +210,9 @@ class ContentPage extends HookWidget {
                       ElevatedButton(
                         onPressed: content.pkgDirectLink == null
                             ? null
-                            : () => downloadContent(content),
+                            : () {
+                                downloader.add(content);
+                              },
                         child: Text(content.pkgDirectLink == null
                             ? t.dowloadLinkNotAvailable
                             : t.download),

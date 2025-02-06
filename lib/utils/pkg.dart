@@ -2,7 +2,13 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:hive_ce/hive.dart';
+import 'package:vita_dl/hive/hive_box_names.dart';
+import 'package:vita_dl/models/content.dart';
+import 'package:vita_dl/models/download_item.dart';
+import 'package:vita_dl/utils/downloader.dart';
 import 'package:vita_dl/utils/path.dart';
+import 'package:vita_dl/utils/path_conv.dart';
 
 Future<String?> getPkgName(List<String> path) async {
   final List<String> pkg2zipPath = await getPkg2zipPath();
@@ -89,4 +95,63 @@ Future<bool> chmodPkg2zip(List<String> path) async {
   log('chmod exit code: ${chmodResult.exitCode}');
 
   return chmodResult.exitCode == 0;
+}
+
+Future<void> extractPkg(Content content) async {
+  final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
+  final downloadItem = downloadBox.get(content.contentID);
+
+  final fileDownloader = Downloader.instance.fileDownloader;
+
+  if (downloadItem == null) return;
+  try {
+    final record = await fileDownloader.database
+        .recordForId(downloadItem.content.contentID!);
+    if (record == null) return;
+
+    final List<String> path = [
+      ...pathConv(record.task.directory),
+      record.task.filename
+    ];
+
+    String? pkgName;
+    try {
+      pkgName = await getPkgName(path);
+      log('pkgName: $pkgName');
+    } catch (e) {
+      log('getPkgName failed: $e', error: e);
+    }
+
+    downloadBox.put(
+      content.contentID,
+      downloadItem.copyWith(
+        extractStatus: ExtractStatus.running,
+      ),
+    );
+
+    final result = await pkg2zip(
+      path: path,
+      extract: content.type == ContentType.theme ? false : true,
+      zRIF: content.zRIF,
+    );
+    if (result) {
+      log('pkg2zip success');
+      downloadBox.put(
+        content.contentID,
+        downloadItem.copyWith(extractStatus: ExtractStatus.complete),
+      );
+    } else {
+      log('pkg2zip failed');
+      downloadBox.put(
+        content.contentID,
+        downloadItem.copyWith(extractStatus: ExtractStatus.failed),
+      );
+    }
+  } catch (e) {
+    log('pkg2zip error: $e', error: e);
+    downloadBox.put(
+      content.contentID,
+      downloadItem.copyWith(extractStatus: ExtractStatus.failed),
+    );
+  }
 }
