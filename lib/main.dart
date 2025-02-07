@@ -13,7 +13,7 @@ import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/pages/content_page.dart';
 import 'package:vita_dl/pages/home_page.dart';
-import 'package:vita_dl/utils/downloader.dart';
+import 'package:vita_dl/downloader/downloader.dart';
 import 'package:vita_dl/utils/path.dart';
 
 Future<void> main() async {
@@ -25,6 +25,7 @@ Future<void> main() async {
 
   await Hive.initFlutter(pathJoin(configPath));
   Hive.registerAdapters();
+
   await Hive.openBox<DownloadItem>(downloadBoxName);
 
   await FileDownloader().trackTasks();

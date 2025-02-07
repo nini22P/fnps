@@ -11,7 +11,7 @@ import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/models/download_item.dart';
 import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/utils/content_info.dart';
-import 'package:vita_dl/utils/downloader.dart';
+import 'package:vita_dl/downloader/downloader.dart';
 import 'package:vita_dl/utils/file_size_convert.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
 import 'package:vita_dl/utils/uri.dart';
@@ -31,7 +31,6 @@ class ContentPage extends HookWidget {
     final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
 
     final downloader = Downloader.instance;
-    final fileDownloader = Downloader.instance.fileDownloader;
 
     Future<List<Content>> getDLCs() async {
       if (content.type != ContentType.app) {

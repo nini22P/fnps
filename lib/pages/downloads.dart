@@ -1,11 +1,9 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/download_item.dart';
-import 'package:vita_dl/utils/downloader.dart';
+import 'package:vita_dl/downloader/downloader.dart';
 import 'package:vita_dl/utils/file_size_convert.dart';
 import 'package:vita_dl/utils/pkg.dart';
 
@@ -18,7 +16,6 @@ class Downloads extends HookWidget {
     final downloads =
         useListenable(downloadBox.listenable()).value.values.toList();
     final downloader = Downloader.instance;
-    final fileDownloader = downloader.fileDownloader;
 
     return ListView.builder(
       itemCount: downloads.length,
@@ -30,29 +27,15 @@ class Downloads extends HookWidget {
             '${fileSizeConvert((downloads[index].content.fileSize! * downloads[index].progress).toInt())}MB / ${fileSizeConvert(downloads[index].content.fileSize ?? 0)}MB  ${downloads[index].downloadStatus} ${downloads[index].extractStatus}'),
         trailing: IconButton(
           icon: const Icon(Icons.delete),
-          onPressed: () => downloader.removeFromQueue(downloads[index].content),
+          onPressed: () => downloader.remove(downloads[index].content),
         ),
         onTap: () async {
-          // final taskId = downloads[index].key;
-          // final record = await fileDownloader.database.recordForId(taskId);
-          // print(record);
           switch (downloads[index].downloadStatus) {
-            case DownloadStatus.complete:
+            case DownloadStatus.completed:
               return;
             case DownloadStatus.paused:
-              final result = await downloader.resume(downloads[index].content);
-              if (!result && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: const Text('Not resumable'),
-                  action: SnackBarAction(
-                    label: 'Restart download',
-                    onPressed: () {
-                      log('Restart pressed');
-                    },
-                  ),
-                ));
-              }
-              break;
+              await downloader.resume(downloads[index].content);
+              return;
             default:
               await downloader.pause(downloads[index].content);
               break;

@@ -10,31 +10,27 @@ part 'download_item.g.dart';
 @HiveType(typeId: downloadStatusTypeId)
 enum DownloadStatus {
   @HiveField(0)
-  enqueued,
+  queued,
   @HiveField(1)
-  running,
+  downloading,
   @HiveField(2)
-  paused,
+  completed,
   @HiveField(3)
-  complete,
-  @HiveField(4)
   failed,
+  @HiveField(4)
+  paused,
   @HiveField(5)
-  notFound,
-  @HiveField(6)
-  waitingToRetry,
-  @HiveField(7)
   canceled,
 }
 
 @HiveType(typeId: extractStatusTypeId)
 enum ExtractStatus {
   @HiveField(0)
-  enqueued,
+  queued,
   @HiveField(1)
-  running,
+  extracting,
   @HiveField(2)
-  complete,
+  completed,
   @HiveField(3)
   failed,
 }
@@ -45,13 +41,14 @@ abstract class DownloadItem extends HiveObject with _$DownloadItem {
   DownloadItem._();
 
   factory DownloadItem({
-    @HiveField(0) required Content content,
-    @HiveField(1) @Default(0) double progress,
-    @HiveField(2)
-    @Default(DownloadStatus.enqueued)
-    DownloadStatus downloadStatus,
-    @HiveField(3) @Default(ExtractStatus.enqueued) ExtractStatus extractStatus,
-    @HiveField(4) @Default(0) int fileSize,
+    @HiveField(0) required String id,
+    @HiveField(1) required String name,
+    @HiveField(2) required List<String> directory,
+    @HiveField(3) @Default(0) double progress,
+    @HiveField(4) @Default(0) int size,
+    @HiveField(5) required Content content,
+    @HiveField(6) @Default(DownloadStatus.queued) DownloadStatus downloadStatus,
+    @HiveField(7) @Default(ExtractStatus.queued) ExtractStatus extractStatus,
   }) = _DownloadItem;
 
   factory DownloadItem.fromJson(Map<String, dynamic> json) =>
