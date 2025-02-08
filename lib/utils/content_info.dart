@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:vita_dl/models/content.dart';
+import 'package:vita_dl/utils/logger.dart';
 import 'package:xml/xml.dart';
 import 'package:crypto/crypto.dart';
 
@@ -76,8 +77,11 @@ String getUpdateXmlLink(String titleID, String hmacKey) {
   return "http://gs-sec.ww.np.dl.playstation.net/pl/np/$titleID/$hash/$titleID-ver.xml";
 }
 
-Future<Content?> getUpdateLink(String titleID, String hmacKey) async {
+Future<Content?> getUpdateLink(Content content, String hmacKey) async {
+  final titleID = content.titleID;
   var xmlLink = getUpdateXmlLink(titleID, hmacKey);
+
+  logger(xmlLink);
 
   try {
     final data = await DefaultCacheManager().getSingleFile(xmlLink);
@@ -94,17 +98,27 @@ Future<Content?> getUpdateLink(String titleID, String hmacKey) async {
 
       final package = tag.findElements('package').first;
 
-      final version = package.getAttribute('version') ?? '';
-      final size = package.getAttribute('size') ?? '';
-      final url = package.getAttribute('url') ?? '';
+      final paramsfo = package.findElements('paramsfo').first;
+
+      final title = paramsfo.findElements('title').first.innerText;
+
+      final version = package.getAttribute('version');
+      final size = package.getAttribute('size') ?? '0';
+      final url = package.getAttribute('url');
+      final contentID = package.getAttribute('content_id');
+      final sha1sum = package.getAttribute('sha1sum');
 
       return Content(
         type: ContentType.update,
         titleID: titleID,
-        name: titleID,
+        name: content.name,
         appVersion: version,
         fileSize: int.tryParse(size),
         pkgDirectLink: url,
+        contentID: contentID,
+        originalName: title,
+        sha1sum: sha1sum,
+        zRIF: content.zRIF,
       );
     }
   } catch (e) {

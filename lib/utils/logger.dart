@@ -1,8 +1,8 @@
 import 'dart:developer';
 import 'package:flutter/foundation.dart';
 
-void logger(String message) {
+void logger(String message, {Object? error}) {
   if (kDebugMode) {
-    log(message);
+    log(message, error: error);
   }
 }

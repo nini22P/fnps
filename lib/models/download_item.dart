@@ -42,7 +42,7 @@ abstract class DownloadItem extends HiveObject with _$DownloadItem {
 
   factory DownloadItem({
     @HiveField(0) required String id,
-    @HiveField(1) required String name,
+    @HiveField(1) required String filename,
     @HiveField(2) required List<String> directory,
     @HiveField(3) @Default(0) double progress,
     @HiveField(4) @Default(0) int size,

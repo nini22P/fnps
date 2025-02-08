@@ -37,6 +37,7 @@ abstract class Content extends HiveObject with _$Content {
     @HiveField(10) String? sha256,
     @HiveField(11) String? requiredFW,
     @HiveField(12) String? appVersion,
+    @HiveField(13) String? sha1sum,
   }) = _Content;
 
   factory Content.fromJson(Map<String, dynamic> json) =>
@@ -61,4 +62,8 @@ abstract class Content extends HiveObject with _$Content {
       appVersion: checkNull(map['App Version']),
     );
   }
+
+  String? getID() => type == ContentType.update && contentID != null
+      ? '$contentID-$appVersion'
+      : contentID;
 }

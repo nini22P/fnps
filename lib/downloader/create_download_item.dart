@@ -4,18 +4,18 @@ import 'package:vita_dl/utils/path.dart';
 
 Future<DownloadItem?> createDownloadItem(Content content) async {
   final url = content.pkgDirectLink;
-  final id = content.contentID;
+  final id = content.getID();
   if (url == null || id == null) {
     return null;
   }
 
   final List<String> downloadsPath = await getDownloadsPath();
-  final String name = '${content.contentID}.pkg';
+  final String filename = '$id.pkg';
   final List<String> directory = [...downloadsPath, content.titleID];
 
   final item = DownloadItem(
     id: id,
-    name: name,
+    filename: filename,
     directory: directory,
     size: content.fileSize ?? 0,
     content: content,

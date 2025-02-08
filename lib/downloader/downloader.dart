@@ -47,19 +47,17 @@ class Downloader {
 
   Future<void> add(Content content) async {
     final downloadItem = await createDownloadItem(content);
-    if (downloadItem == null) return;
+    final id = content.getID();
+    if (downloadItem == null || id == null) return;
 
-    final file = File(pathJoin([...downloadItem.directory, downloadItem.name]));
-
-    if (file.existsSync() ||
-        downloadItem.downloadStatus == DownloadStatus.downloading ||
+    if (downloadItem.downloadStatus == DownloadStatus.downloading ||
         _queue.contains(content)) {
-      logger('Already downloading or completed ${content.contentID}...');
+      logger('Already downloading $id...');
       return;
     }
 
-    logger('Adding ${content.contentID} to download queue...');
-    await downloadBox.put(content.contentID, downloadItem);
+    logger('Adding $id to download queue...');
+    await downloadBox.put(downloadItem.id, downloadItem);
     _queue.add(content);
     _start();
   }
@@ -80,15 +78,16 @@ class Downloader {
   }
 
   Future<void> pause(Content content) async {
-    final downloadItem = downloadBox.get(content.contentID);
-    if (downloadItem == null) return;
+    final downloadItem = downloadBox.get(content.getID());
+    final id = downloadItem?.id;
+    if (downloadItem == null || id == null) return;
 
-    logger('Pausing ${content.contentID} (Dio: set status to paused)...');
+    logger('Pausing $id (Dio: set status to paused)...');
     downloadBox.put(
-      content.contentID,
+      downloadItem.id,
       downloadItem.copyWith(downloadStatus: DownloadStatus.paused),
     );
-    final cancelToken = cancelTokens[content.contentID];
+    final cancelToken = cancelTokens[id];
     if (cancelToken != null && !cancelToken.isCancelled) {
       cancelToken.cancel('Download paused');
     }
@@ -98,8 +97,10 @@ class Downloader {
   }
 
   Future<bool> resume(Content content) async {
-    final downloadItem = downloadBox.get(content.contentID);
+    final downloadItem = downloadBox.get(content.getID());
+    final id = downloadItem?.id;
     if (downloadItem == null ||
+        id == null ||
         downloadItem.downloadStatus == DownloadStatus.downloading) {
       return false;
     }
@@ -107,7 +108,7 @@ class Downloader {
       return true;
     }
 
-    logger('Resuming ${content.contentID}...');
+    logger('Resuming $id...');
     add(content);
     return true;
   }
@@ -115,27 +116,27 @@ class Downloader {
   Future<void> remove(Content content) async {
     try {
       await pause(content);
-      await downloadBox.delete(content.contentID);
-      logger('Removed ${content.contentID} from download queue...');
+      await downloadBox.delete(content.getID());
+      logger('Removed ${content.getID()} from download queue...');
     } catch (e) {
       logger('Error cancelling download: $e');
     }
   }
 
   Future<void> download(Content content) async {
-    final String? id = content.contentID;
     final String? url = content.pkgDirectLink;
-    if (id == null || url == null) return;
+    if (url == null) return;
 
     late String partialFilePath;
     late File partialFile;
 
-    CancelToken cancelToken = CancelToken();
-    cancelTokens[id] = cancelToken;
-
     try {
-      DownloadItem? downloadItem = downloadBox.get(id);
-      if (downloadItem == null) return;
+      DownloadItem? downloadItem = downloadBox.get(content.getID());
+      final id = downloadItem?.id;
+      if (downloadItem == null || id == null) return;
+
+      CancelToken cancelToken = CancelToken();
+      cancelTokens[id] = cancelToken;
 
       downloadBox.put(
         downloadItem.id,
@@ -143,10 +144,10 @@ class Downloader {
       );
 
       final String filePath =
-          pathJoin([...downloadItem.directory, downloadItem.name]);
+          pathJoin([...downloadItem.directory, downloadItem.filename]);
       File file = File(filePath);
       partialFilePath =
-          pathJoin([...downloadItem.directory, downloadItem.name]) +
+          pathJoin([...downloadItem.directory, downloadItem.filename]) +
               partialExtension;
       partialFile = File(partialFilePath);
 
@@ -157,7 +158,10 @@ class Downloader {
         logger("File Exists");
         downloadBox.put(
           downloadItem.id,
-          downloadItem.copyWith(downloadStatus: DownloadStatus.completed),
+          downloadItem.copyWith(
+            progress: 1,
+            downloadStatus: DownloadStatus.completed,
+          ),
         );
       } else if (partialFileExist) {
         logger("Partial File Exists");
@@ -212,9 +216,10 @@ class Downloader {
         }
       }
     } catch (e) {
-      DownloadItem? downloadItem = downloadBox.get(content.contentID);
+      DownloadItem? downloadItem = downloadBox.get(content.getID());
       if (downloadItem!.downloadStatus != DownloadStatus.canceled &&
           downloadItem.downloadStatus != DownloadStatus.paused) {
+        logger('Downloading failed ${content.getID()}', error: e);
         downloadBox.put(
           downloadItem.id,
           downloadItem.copyWith(downloadStatus: DownloadStatus.failed),
@@ -224,7 +229,6 @@ class Downloader {
         if (_queue.isNotEmpty) {
           _start();
         }
-        // rethrow;
       } else if (downloadItem.downloadStatus == DownloadStatus.paused) {
         final ioSink = partialFile.openWrite(mode: FileMode.writeOnlyAppend);
         final f = File(partialFilePath + tempExtension);
@@ -234,23 +238,47 @@ class Downloader {
         await ioSink.close();
       }
     } finally {
-      DownloadItem? downloadItem = downloadBox.get(content.contentID);
+      DownloadItem? downloadItem = downloadBox.get(content.getID());
       if (downloadItem != null &&
           downloadItem.downloadStatus == DownloadStatus.completed) {
+        final List<String> path = [
+          ...downloadItem.directory,
+          downloadItem.filename
+        ];
+
         downloadBox.put(
           downloadItem.id,
-          downloadItem.copyWith(extractStatus: ExtractStatus.extracting),
+          downloadItem.copyWith(
+            extractStatus: ExtractStatus.extracting,
+          ),
         );
-        final result = await extractPkg(content);
+
+        try {
+          final pkgName = await getPkgName(path);
+          logger('pkgName: $pkgName');
+        } catch (e) {
+          logger('getPkgName failed:', error: e);
+        }
+
+        final result = await pkg2zip(
+          path: path,
+          extract: content.type == ContentType.theme ? false : true,
+          zRIF: content.zRIF,
+        );
+
         if (result) {
           downloadBox.put(
             downloadItem.id,
-            downloadItem.copyWith(extractStatus: ExtractStatus.completed),
+            downloadItem.copyWith(
+              extractStatus: ExtractStatus.completed,
+            ),
           );
         } else {
           downloadBox.put(
             downloadItem.id,
-            downloadItem.copyWith(extractStatus: ExtractStatus.failed),
+            downloadItem.copyWith(
+              extractStatus: ExtractStatus.failed,
+            ),
           );
         }
       }
@@ -271,9 +299,11 @@ class Downloader {
         int received,
         int total,
       ) {
-        DownloadItem? downloadItem = downloadBox.get(content.contentID);
+        DownloadItem? downloadItem = downloadBox.get(content.getID());
+        if (downloadItem == null) return;
+
         downloadBox.put(
-          downloadItem!.id,
+          downloadItem.id,
           downloadItem.copyWith(
             downloadStatus: DownloadStatus.downloading,
             progress:

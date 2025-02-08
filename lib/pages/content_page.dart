@@ -5,7 +5,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_html/flutter_html.dart' as html;
 import 'package:hive_ce/hive.dart';
 import 'package:provider/provider.dart';
-import 'package:vita_dl/database/database_helper.dart';
 import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/models/download_item.dart';
@@ -28,47 +27,36 @@ class ContentPage extends HookWidget {
     final config = configProvider.config;
     String? hmacKey = config.hmacKey;
 
+    final dlcBox = Hive.box<Content>(dlcBoxName);
+    final themeBox = Hive.box<Content>(themeBoxName);
     final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
 
     final downloader = Downloader.instance;
 
-    Future<List<Content>> getDLCs() async {
-      if (content.type != ContentType.app) {
-        return [];
-      }
-      final DatabaseHelper dbHelper = DatabaseHelper();
-      List<Content> fetchedDLCs =
-          await dbHelper.getContents(['dlc'], content.titleID);
-      return [...fetchedDLCs];
-    }
+    List<Content> getDLCs() => content.type != ContentType.app
+        ? []
+        : dlcBox.values
+            .where((item) => content.titleID == item.titleID)
+            .toList();
 
-    Future<List<Content>> getThemes() async {
-      if (content.type != ContentType.app) {
-        return [];
-      }
-      final DatabaseHelper dbHelper = DatabaseHelper();
-      List<Content> fetchedThemes =
-          await dbHelper.getContents(['theme'], content.titleID);
-      return [...fetchedThemes];
-    }
+    List<Content> getThemes() => content.type != ContentType.app
+        ? []
+        : themeBox.values
+            .where((item) => content.titleID == item.titleID)
+            .toList();
 
-    Future<Content?> getUpdate(String hmacKey) async {
-      if (content.type != ContentType.app || hmacKey.isEmpty) {
-        return null;
-      }
-      Content? info = await getUpdateLink(content.titleID, hmacKey);
-      return info;
-    }
+    Future<Content?> getUpdate(String hmacKey) async =>
+        content.type != ContentType.app || hmacKey.isEmpty
+            ? null
+            : await getUpdateLink(content, hmacKey);
 
-    final dlcFuture = useMemoized(() => getDLCs());
-    final themeFuture = useMemoized(() => getThemes());
     final updateFuture =
         useMemoized(() => hmacKey == null ? null : getUpdate(hmacKey));
     final contentInfoFuture = useMemoized(() =>
         content.contentID == null ? null : getContentInfo(content.contentID!));
 
-    final dlcs = useFuture(dlcFuture).data ?? [];
-    final themes = useFuture(themeFuture).data ?? [];
+    final dlcs = useMemoized(() => getDLCs());
+    final themes = useMemoized(() => getThemes());
     final update = useFuture(updateFuture).data;
     final contentInfo = useFuture(contentInfoFuture).data;
     final String? iconUrl = getContentIconUrl(content);
@@ -237,8 +225,7 @@ class ContentPage extends HookWidget {
                       ),
                       if (update?.pkgDirectLink != null)
                         ElevatedButton(
-                          onPressed: () =>
-                              launchURL('${update?.pkgDirectLink}'),
+                          onPressed: () => downloader.add(update!),
                           child: Text(t.downloadUpdate),
                         ),
                       if (update?.pkgDirectLink != null)
@@ -333,8 +320,7 @@ class ContentPage extends HookWidget {
                             theme.pkgDirectLink == null
                                 ? const SizedBox()
                                 : IconButton(
-                                    onPressed: () =>
-                                        launchURL('${theme.pkgDirectLink}'),
+                                    onPressed: () => downloader.add(theme),
                                     icon: const Icon(Icons.download)),
                             theme.pkgDirectLink == null
                                 ? const SizedBox()
@@ -385,8 +371,7 @@ class ContentPage extends HookWidget {
                             dlc.pkgDirectLink == null
                                 ? const SizedBox()
                                 : IconButton(
-                                    onPressed: () =>
-                                        launchURL('${dlc.pkgDirectLink}'),
+                                    onPressed: () => downloader.add(dlc),
                                     icon: const Icon(Icons.download)),
                             dlc.pkgDirectLink == null
                                 ? const SizedBox()

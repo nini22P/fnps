@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:vita_dl/database/database_helper.dart';
+import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/config.dart';
 import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
 
-class ContentsList extends HookWidget {
-  const ContentsList({
+class Contents extends HookWidget {
+  const Contents({
     super.key,
     required this.types,
   });
 
-  final List<String> types;
+  final List<ContentType> types;
 
   @override
   Widget build(BuildContext context) {
@@ -23,27 +24,26 @@ class ContentsList extends HookWidget {
     Config config = configProvider.config;
     final selectedRegions = config.regions;
 
-    final contents = useState(<Content>[]);
+    final appBox = Hive.box<Content>(appBoxName);
+    final dlcBox = Hive.box<Content>(dlcBoxName);
+    final themeBox = Hive.box<Content>(themeBoxName);
+
+    final contents = useMemoized(() => [
+          if (types.contains(ContentType.app)) ...appBox.values,
+          if (types.contains(ContentType.dlc)) ...dlcBox.values,
+          if (types.contains(ContentType.theme)) ...themeBox.values,
+        ]);
+
     final filteredContents = useState(<Content>[]);
+    final sortedContents = useState(<Content>[]);
     final searchText = useState('');
     final regions = ['JP', 'US', 'INT', 'EU', 'ASIA', 'UNKNOWN'];
 
     final focusNode = useFocusNode();
     final searchTextController = useTextEditingController();
-    Future<void> fetchContents() async {
-      final DatabaseHelper dbHelper = DatabaseHelper();
-      List<Content> fetchedContents = await dbHelper.getContents(types, null);
-      fetchedContents.sort((a, b) => a.name.compareTo(b.name));
-      contents.value = [...fetchedContents];
-    }
 
     useEffect(() {
-      fetchContents();
-      return;
-    }, []);
-
-    useEffect(() {
-      filteredContents.value = contents.value
+      filteredContents.value = contents
           .where((content) =>
               (content.name
                       .toLowerCase()
@@ -57,7 +57,13 @@ class ContentsList extends HookWidget {
               selectedRegions.contains(content.region))
           .toList();
       return;
-    }, [searchText.value, selectedRegions, contents.value]);
+    }, [searchText.value, selectedRegions, contents]);
+
+    useEffect(() {
+      sortedContents.value = [...filteredContents.value]
+        ..sort((a, b) => a.name.compareTo(b.name));
+      return;
+    }, [filteredContents.value]);
 
     void clearSearchText() {
       searchTextController.clear();
@@ -124,9 +130,9 @@ class ContentsList extends HookWidget {
         Expanded(
           child: ListView.builder(
             key: PageStorageKey(searchText.value),
-            itemCount: filteredContents.value.length,
+            itemCount: sortedContents.value.length,
             itemBuilder: (context, index) {
-              final content = filteredContents.value[index];
+              final content = sortedContents.value[index];
               return ListTile(
                 title: Text(content.name),
                 subtitle: Row(

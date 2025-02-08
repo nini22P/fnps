@@ -1,11 +1,7 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/services.dart';
-import 'package:hive_ce/hive.dart';
-import 'package:vita_dl/hive/hive_box_names.dart';
-import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/models/download_item.dart';
+import 'package:vita_dl/utils/logger.dart';
 import 'package:vita_dl/utils/path.dart';
 
 Future<String?> getPkgName(List<String> path) async {
@@ -22,11 +18,11 @@ Future<String?> getPkgName(List<String> path) async {
   String? pkgName;
   process.stdout.transform(utf8.decoder).forEach((line) {
     pkgName = line;
-    log('pkg2zip output: $line');
+    logger('pkg2zip output: $line');
   });
 
   process.stderr.transform(utf8.decoder).forEach((line) {
-    log('pkg2zip error: $line');
+    logger('pkg2zip error: $line');
   });
 
   var exitCode = await process.exitCode;
@@ -54,11 +50,11 @@ Future<bool> pkg2zip({
   );
 
   process.stdout.transform(utf8.decoder).forEach((line) {
-    log('pkg2zip output: $line');
+    logger('pkg2zip output: $line');
   });
 
   process.stderr.transform(utf8.decoder).forEach((line) {
-    log('pkg2zip error: $line');
+    logger('pkg2zip error: $line');
   });
 
   var exitCode = await process.exitCode;
@@ -78,7 +74,7 @@ Future<void> copyPkg2zip(List<String> path) async {
     final byteData = await rootBundle.load(sourcePath);
     final buffer = byteData.buffer.asUint8List();
     await file.writeAsBytes(buffer);
-    log('File copied to: $path');
+    logger('File copied to: $path');
   }
 }
 
@@ -90,67 +86,7 @@ Future<bool> chmodPkg2zip(List<String> path) async {
     runInShell: true,
     workingDirectory: pathJoin(workingPath),
   );
-  log('chmod exit code: ${chmodResult.exitCode}');
+  logger('chmod exit code: ${chmodResult.exitCode}');
 
   return chmodResult.exitCode == 0;
-}
-
-Future<bool> extractPkg(Content content) async {
-  final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
-  final downloadItem = downloadBox.get(content.contentID);
-
-  if (downloadItem == null) return false;
-
-  try {
-    final List<String> path = [...downloadItem.directory, downloadItem.name];
-
-    String? pkgName;
-    try {
-      pkgName = await getPkgName(path);
-      log('pkgName: $pkgName');
-    } catch (e) {
-      log('getPkgName failed: $e', error: e);
-      downloadBox.put(
-        content.contentID,
-        downloadItem.copyWith(extractStatus: ExtractStatus.failed),
-      );
-      return false;
-    }
-
-    downloadBox.put(
-      content.contentID,
-      downloadItem.copyWith(
-        extractStatus: ExtractStatus.extracting,
-      ),
-    );
-
-    final result = await pkg2zip(
-      path: path,
-      extract: content.type == ContentType.theme ? false : true,
-      zRIF: content.zRIF,
-    );
-
-    if (result) {
-      log('pkg2zip success');
-      downloadBox.put(
-        content.contentID,
-        downloadItem.copyWith(extractStatus: ExtractStatus.completed),
-      );
-      return true;
-    } else {
-      log('pkg2zip failed');
-      downloadBox.put(
-        content.contentID,
-        downloadItem.copyWith(extractStatus: ExtractStatus.failed),
-      );
-      return false;
-    }
-  } catch (e) {
-    log('pkg2zip error: $e', error: e);
-    downloadBox.put(
-      content.contentID,
-      downloadItem.copyWith(extractStatus: ExtractStatus.failed),
-    );
-    return false;
-  }
 }

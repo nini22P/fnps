@@ -1,15 +1,14 @@
-import 'dart:developer';
-import 'dart:io';
-import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:vita_dl/database/database_helper.dart';
+import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/config.dart';
 import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
+import 'package:vita_dl/utils/tsv_to_contents.dart';
 import 'package:vita_dl/utils/uri.dart';
 
 class Settings extends HookWidget {
@@ -21,69 +20,40 @@ class Settings extends HookWidget {
     final configProvider = Provider.of<ConfigProvider>(context);
     Config config = configProvider.config;
 
+    final appBox = Hive.box<Content>(appBoxName);
+    final dlcBox = Hive.box<Content>(dlcBoxName);
+    final themeBox = Hive.box<Content>(themeBoxName);
+
     final TextEditingController hmacKeyController =
         TextEditingController(text: config.hmacKey);
 
-    final DatabaseHelper dbHelper = DatabaseHelper();
-
     Future<void> updateSource(
-        String source, SourceType type, String url, DateTime updateTime) async {
-      if (source == 'app') {
-        configProvider.updateConfig(configProvider.config.copyWith(
-            app: Source(type: type, updateTime: updateTime, url: url)));
-      }
-
-      if (source == 'dlc') {
-        configProvider.updateConfig(configProvider.config.copyWith(
-            dlc: Source(type: type, updateTime: updateTime, url: url)));
-      }
-
-      if (source == 'theme') {
-        configProvider.updateConfig(configProvider.config.copyWith(
-            theme: Source(type: type, updateTime: updateTime, url: url)));
-      }
-    }
-
-    Future<void> updateHmacKey(String hmacKey) async {
-      configProvider
-          .updateConfig(configProvider.config.copyWith(hmacKey: hmacKey));
-    }
-
-    Future<void> readFile(String filePath, ContentType type) async {
-      final file = File(filePath);
-      if (await file.exists()) {
-        String content = await file.readAsString();
-        String processedContent = content
-            .replaceAll('\t', ',')
-            .replaceAll("'", '')
-            .replaceAll('"', '');
-        List<List<dynamic>> data =
-            const CsvToListConverter().convert(processedContent);
-        List<Content> contents = [];
-        if (data.isNotEmpty) {
-          List<String> headers =
-              List<String>.from(data[0].map((item) => item.toString()));
-          contents = data.sublist(1).map((row) {
-            Map<String, dynamic> rowMap = {};
-            rowMap['Type'] = type;
-            for (int i = 0; i < headers.length; i++) {
-              if (i < row.length) {
-                rowMap[headers[i]] = row[i].toString();
-              } else {
-                rowMap[headers[i]] = '';
-              }
-            }
-            return Content.convert(rowMap).copyWith(type: type);
-          }).toList();
-        }
-        await dbHelper.deleteContentsByTypes([type.name]);
-        await dbHelper.insertContents(contents);
-        await updateSource(
-            type.name, SourceType.local, '', DateTime.now().toUtc());
-      } else {
-        log('File does not exist.');
+      ContentType contentType,
+      SourceType sourceType,
+      String url,
+      DateTime updateTime,
+    ) async {
+      switch (contentType) {
+        case ContentType.app:
+          configProvider.updateConfig(configProvider.config.copyWith(
+              app: Source(type: sourceType, updateTime: updateTime, url: url)));
+          break;
+        case ContentType.dlc:
+          configProvider.updateConfig(configProvider.config.copyWith(
+              dlc: Source(type: sourceType, updateTime: updateTime, url: url)));
+          break;
+        case ContentType.theme:
+          configProvider.updateConfig(configProvider.config.copyWith(
+              theme:
+                  Source(type: sourceType, updateTime: updateTime, url: url)));
+          break;
+        default:
+          break;
       }
     }
+
+    Future<void> updateHmacKey(String hmacKey) async => configProvider
+        .updateConfig(configProvider.config.copyWith(hmacKey: hmacKey));
 
     Future<void> pickTsvFile(ContentType type) async {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -94,12 +64,31 @@ class Settings extends HookWidget {
 
       if (result != null && result.files.isNotEmpty) {
         String filePath = result.files.single.path!;
-        readFile(filePath, type);
+        final contents = await tsvToContents(filePath, type);
+        switch (type) {
+          case ContentType.app:
+            await appBox.clear();
+            await appBox.addAll(contents);
+            break;
+          case ContentType.dlc:
+            await dlcBox.clear();
+            await dlcBox.addAll(contents);
+            break;
+          case ContentType.theme:
+            await themeBox.clear();
+            await themeBox.addAll(contents);
+            break;
+          default:
+            break;
+        }
+        await updateSource(type, SourceType.local, '', DateTime.now().toUtc());
       }
     }
 
     Future<void> resetConfig() async {
-      await dbHelper.deleteContents();
+      await appBox.clear();
+      await dlcBox.clear();
+      await themeBox.clear();
       await configProvider.resetConfig();
     }
 

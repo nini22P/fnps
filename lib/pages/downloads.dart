@@ -1,11 +1,12 @@
+import 'package:android_x_storage/android_x_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/download_item.dart';
 import 'package:vita_dl/downloader/downloader.dart';
 import 'package:vita_dl/utils/file_size_convert.dart';
-import 'package:vita_dl/utils/pkg.dart';
 
 class Downloads extends HookWidget {
   const Downloads({super.key});
@@ -42,7 +43,6 @@ class Downloads extends HookWidget {
           }
           switch (downloads[index].extractStatus) {
             case ExtractStatus.failed:
-              await extractPkg(downloads[index].content);
               break;
             default:
               break;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:vita_dl/pages/contents_list.dart';
+import 'package:vita_dl/models/content.dart';
+import 'package:vita_dl/pages/contents.dart';
 import 'package:vita_dl/pages/downloads.dart';
 import 'package:vita_dl/pages/settings.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
@@ -27,8 +28,8 @@ class HomePage extends HookWidget {
           selectedIndex.value = index;
         },
         children: const [
-          ContentsList(types: ['app']),
-          ContentsList(types: ['theme']),
+          Contents(types: [ContentType.app]),
+          Contents(types: [ContentType.theme]),
           Downloads(),
           Settings(),
         ],
