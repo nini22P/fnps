@@ -2,12 +2,14 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/config.dart';
 import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
+import 'package:vita_dl/utils/request_storage_permission.dart';
 import 'package:vita_dl/utils/tsv_to_contents.dart';
 import 'package:vita_dl/utils/uri.dart';
 
@@ -56,6 +58,7 @@ class Settings extends HookWidget {
         .updateConfig(configProvider.config.copyWith(hmacKey: hmacKey));
 
     Future<void> pickTsvFile(ContentType type) async {
+      await requestStoragePermission();
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['tsv', 'csv'],

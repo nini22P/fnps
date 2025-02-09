@@ -1,6 +1,9 @@
+import 'dart:io';
+import 'package:vita_dl/globals.dart' as globals;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -12,6 +15,7 @@ import 'package:vita_dl/pages/content_page/content_page.dart';
 import 'package:vita_dl/pages/home_page.dart';
 import 'package:vita_dl/downloader/downloader.dart';
 import 'package:vita_dl/utils/path.dart';
+import 'package:vita_dl/utils/request_storage_permission.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: '.env');
@@ -46,6 +50,16 @@ class VitaDL extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    useEffect(() {
+      () async {
+        globals.storagePermissionStatus = Platform.isAndroid
+            ? await isAndroid11OrHigher()
+                ? await Permission.manageExternalStorage.status
+                : await Permission.storage.status
+            : PermissionStatus.granted;
+      }();
+      return null;
+    }, []);
     return MaterialApp(
       title: 'VitaDL',
       theme: ThemeData(
