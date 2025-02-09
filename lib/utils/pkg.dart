@@ -49,11 +49,11 @@ Future<bool> pkg2zip({
     workingDirectory: pathJoin(workingPath),
   );
 
-  process.stdout.transform(utf8.decoder).forEach((line) {
+  process.stdout.transform(utf8.decoder).listen((line) {
     logger('pkg2zip output: $line');
   });
 
-  process.stderr.transform(utf8.decoder).forEach((line) {
+  process.stderr.transform(utf8.decoder).listen((line) {
     logger('pkg2zip error: $line');
   });
 

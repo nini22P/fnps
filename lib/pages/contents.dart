@@ -6,6 +6,7 @@ import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/config.dart';
 import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/provider/config_provider.dart';
+import 'package:vita_dl/utils/file_size_convert.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
 
 class Contents extends HookWidget {
@@ -139,31 +140,29 @@ class Contents extends HookWidget {
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     if (content.region != null)
-                      Container(
+                      Badge(
+                        label: Text(content.region!.toUpperCase()),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.blue,
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                        child: Text(
-                          '${content.region}',
-                          style: const TextStyle(color: Colors.white),
-                        ),
                       ),
                     const SizedBox(width: 4),
-                    Container(
+                    Badge(
+                      label: Text(content.titleID.toUpperCase()),
+                      backgroundColor: Colors.blueGrey,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.blueGrey,
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                      child: Text(
-                        content.titleID,
-                        style: const TextStyle(color: Colors.white),
-                      ),
                     ),
+                    const SizedBox(width: 4),
+                    if (content.pkgDirectLink != null)
+                      Badge(
+                        label: content.fileSize == null
+                            ? Text(t.unknown_size)
+                            : Text('${fileSizeConv(content.fileSize)}'),
+                        backgroundColor: Colors.blueGrey,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                      ),
                   ],
                 ),
                 onTap: () {

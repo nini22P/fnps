@@ -5,11 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:vita_dl/hive/hive_box_names.dart';
-import 'package:vita_dl/hive_registrar.g.dart';
 import 'package:vita_dl/models/download_item.dart';
 import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/pages/content_page.dart';
+import 'package:vita_dl/pages/content_page/content_page.dart';
 import 'package:vita_dl/pages/home_page.dart';
 import 'package:vita_dl/downloader/downloader.dart';
 import 'package:vita_dl/utils/path.dart';
@@ -20,7 +19,12 @@ Future<void> main() async {
   final configPath = await getConfigPath();
 
   await Hive.initFlutter(pathJoin(configPath));
-  Hive.registerAdapters();
+
+  Hive.registerAdapter(ContentAdapter());
+  Hive.registerAdapter(ContentTypeAdapter());
+  Hive.registerAdapter(DownloadItemAdapter());
+  Hive.registerAdapter(DownloadStatusAdapter());
+  Hive.registerAdapter(ExtractStatusAdapter());
 
   await Hive.openBox<DownloadItem>(downloadBoxName);
   await Hive.openBox<Content>(appBoxName);

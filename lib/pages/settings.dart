@@ -100,7 +100,7 @@ class Settings extends HookWidget {
         child: Column(
           children: [
             ListTile(
-              title: Text(t.updateAppList),
+              title: Text(t.update_app_list),
               subtitle: config.app.updateTime == null
                   ? const Text('')
                   : Text(config.app.updateTime!
@@ -112,7 +112,7 @@ class Settings extends HookWidget {
               onTap: () => pickTsvFile(ContentType.app),
             ),
             ListTile(
-              title: Text(t.updateDLCList),
+              title: Text(t.update_dlc_list),
               subtitle: config.dlc.updateTime == null
                   ? const Text('')
                   : Text(config.dlc.updateTime!
@@ -124,7 +124,7 @@ class Settings extends HookWidget {
               onTap: () => pickTsvFile(ContentType.dlc),
             ),
             ListTile(
-              title: Text(t.updateThemeList),
+              title: Text(t.update_theme_list),
               subtitle: config.theme.updateTime == null
                   ? const Text('')
                   : Text(config.theme.updateTime!
@@ -136,12 +136,12 @@ class Settings extends HookWidget {
               onTap: () => pickTsvFile(ContentType.theme),
             ),
             ListTile(
-              title: Text(t.hmacKey),
+              title: Text(t.hmac_key),
               subtitle: config.hmacKey == null ? null : Text(config.hmacKey!),
               onTap: () => showDialog<String>(
                 context: context,
                 builder: (BuildContext context) => AlertDialog(
-                  title: Text(t.hmacKey),
+                  title: Text(t.hmac_key),
                   content: TextField(
                     controller: hmacKeyController,
                   ),
@@ -163,8 +163,8 @@ class Settings extends HookWidget {
             ),
             const Divider(),
             ListTile(
-              title: Text(t.resetConfig),
-              subtitle: Text(t.resetConfigSub),
+              title: Text(t.reset_config),
+              subtitle: Text(t.reset_config_subtitle),
               onTap: resetConfig,
             ),
             const Divider(),

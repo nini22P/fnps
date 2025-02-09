@@ -45,20 +45,23 @@ class Downloader {
     }
   }
 
-  Future<void> add(Content content) async {
-    final downloadItem = await createDownloadItem(content);
-    final id = content.getID();
-    if (downloadItem == null || id == null) return;
+  Future<void> add(List<Content> contents) async {
+    for (final content in contents) {
+      final downloadItem = await createDownloadItem(content);
+      final id = content.getID();
+      if (downloadItem == null || id == null) return;
 
-    if (downloadItem.downloadStatus == DownloadStatus.downloading ||
-        _queue.contains(content)) {
-      logger('Already downloading $id...');
-      return;
+      if (downloadItem.downloadStatus == DownloadStatus.downloading ||
+          _queue.contains(content)) {
+        logger('Already downloading $id...');
+        continue;
+      }
+
+      logger('Adding $id to download queue...');
+      await downloadBox.put(downloadItem.id, downloadItem);
+      _queue.add(content);
     }
 
-    logger('Adding $id to download queue...');
-    await downloadBox.put(downloadItem.id, downloadItem);
-    _queue.add(content);
     _start();
   }
 
@@ -77,49 +80,64 @@ class Downloader {
     }
   }
 
-  Future<void> pause(Content content) async {
-    final downloadItem = downloadBox.get(content.getID());
-    final id = downloadItem?.id;
-    if (downloadItem == null || id == null) return;
+  Future<void> pause(List<Content> contents) async {
+    for (final content in contents) {
+      final downloadItem = downloadBox.get(content.getID());
+      final id = downloadItem?.id;
+      if (downloadItem == null || id == null) continue;
 
-    logger('Pausing $id (Dio: set status to paused)...');
-    downloadBox.put(
-      downloadItem.id,
-      downloadItem.copyWith(downloadStatus: DownloadStatus.paused),
-    );
-    final cancelToken = cancelTokens[id];
-    if (cancelToken != null && !cancelToken.isCancelled) {
-      cancelToken.cancel('Download paused');
-    }
-    if (_queue.contains(content)) {
-      _queue.remove(content);
+      logger('Pausing $id (Dio: set status to paused)...');
+      downloadBox.put(
+        downloadItem.id,
+        downloadItem.copyWith(downloadStatus: DownloadStatus.paused),
+      );
+      final cancelToken = cancelTokens[id];
+      if (cancelToken != null && !cancelToken.isCancelled) {
+        cancelToken.cancel('Download paused');
+      }
+      if (_queue.contains(content)) {
+        _queue.remove(content);
+      }
     }
   }
 
-  Future<bool> resume(Content content) async {
-    final downloadItem = downloadBox.get(content.getID());
-    final id = downloadItem?.id;
-    if (downloadItem == null ||
-        id == null ||
-        downloadItem.downloadStatus == DownloadStatus.downloading) {
-      return false;
-    }
-    if (_queue.contains(content)) {
-      return true;
-    }
+  Future<void> remove(List<Content> contents) async {
+    for (final content in contents) {
+      try {
+        final downloadItem = downloadBox.get(content.getID());
+        if (downloadItem != null) {
+          await pause([content]);
 
-    logger('Resuming $id...');
-    add(content);
-    return true;
-  }
+          final String filePath =
+              pathJoin([...downloadItem.directory, downloadItem.filename]);
+          final String partialFilePath =
+              pathJoin([...downloadItem.directory, downloadItem.filename]) +
+                  partialExtension;
 
-  Future<void> remove(Content content) async {
-    try {
-      await pause(content);
-      await downloadBox.delete(content.getID());
-      logger('Removed ${content.getID()} from download queue...');
-    } catch (e) {
-      logger('Error cancelling download: $e');
+          File file = File(filePath);
+          File partialFile = File(partialFilePath);
+
+          var fileExist = await file.exists();
+          var partialFileExist = await partialFile.exists();
+
+          try {
+            if (fileExist) await file.delete();
+          } catch (e) {
+            logger('Not delete file: $filePath', error: e);
+          }
+
+          try {
+            if (partialFileExist) await partialFile.delete();
+          } catch (e) {
+            logger('Not delete partial file: $filePath', error: e);
+          }
+
+          await downloadBox.delete(content.getID());
+        }
+        logger('Removed ${content.getID()} from download queue...');
+      } catch (e) {
+        logger('Error cancelling download: $e');
+      }
     }
   }
 
