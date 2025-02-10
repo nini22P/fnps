@@ -23,7 +23,7 @@ class Downloader {
 
   final Queue<Content> _queue = Queue();
   final Map<String, CancelToken> cancelTokens = {};
-  int maxConcurrentTasks = 2;
+  int maxConcurrentTasks = 3;
   int runningTasks = 0;
 
   static const partialExtension = ".partial";
@@ -38,8 +38,14 @@ class Downloader {
       if ([DownloadStatus.downloading, DownloadStatus.queued]
           .contains(download.downloadStatus)) {
         downloadBox.put(
-          download.key,
+          download.id,
           download.copyWith(downloadStatus: DownloadStatus.paused),
+        );
+      } else if (download.downloadStatus == DownloadStatus.completed &&
+          download.extractStatus != ExtractStatus.completed) {
+        downloadBox.put(
+          download.id,
+          download.copyWith(extractStatus: ExtractStatus.failed),
         );
       }
     }
@@ -66,17 +72,16 @@ class Downloader {
   }
 
   Future<void> _start() async {
-    try {
-      while (runningTasks < maxConcurrentTasks && _queue.isNotEmpty) {
-        final content = _queue.removeFirst();
-        runningTasks++;
-        download(content).then((_) {
-          runningTasks--;
-          _start();
-        });
-      }
-    } catch (e) {
-      logger('Error in _start: $e');
+    if (runningTasks >= maxConcurrentTasks || _queue.isEmpty) {
+      return;
+    }
+
+    while (runningTasks < maxConcurrentTasks && _queue.isNotEmpty) {
+      final content = _queue.removeFirst();
+      runningTasks++;
+      logger('Running task: $runningTasks');
+      download(content);
+      await Future.delayed(const Duration(milliseconds: 500), null);
     }
   }
 
@@ -155,6 +160,8 @@ class Downloader {
 
       CancelToken cancelToken = CancelToken();
       cancelTokens[id] = cancelToken;
+
+      logger('Starting download for ${content.name}');
 
       downloadBox.put(
         downloadItem.id,
@@ -242,11 +249,6 @@ class Downloader {
           downloadItem.id,
           downloadItem.copyWith(downloadStatus: DownloadStatus.failed),
         );
-        runningTasks--;
-
-        if (_queue.isNotEmpty) {
-          _start();
-        }
       } else if (downloadItem.downloadStatus == DownloadStatus.paused) {
         final ioSink = partialFile.openWrite(mode: FileMode.writeOnlyAppend);
         final f = File(partialFilePath + tempExtension);
@@ -303,10 +305,7 @@ class Downloader {
     }
 
     runningTasks--;
-
-    if (_queue.isNotEmpty) {
-      _start();
-    }
+    _start();
   }
 
   DateTime? lastUpdateTime;

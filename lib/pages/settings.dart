@@ -1,9 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:saf_stream/saf_stream.dart';
+import 'package:saf_util/saf_util.dart';
+import 'package:saf_util/saf_util_platform_interface.dart';
 import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/config.dart';
 import 'package:vita_dl/provider/config_provider.dart';
@@ -58,16 +62,32 @@ class Settings extends HookWidget {
         .updateConfig(configProvider.config.copyWith(hmacKey: hmacKey));
 
     Future<void> pickTsvFile(ContentType type) async {
-      await requestStoragePermission();
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['tsv', 'csv'],
-        withData: true,
-      );
+      String? content;
 
-      if (result != null && result.files.isNotEmpty) {
-        String filePath = result.files.single.path!;
-        final contents = await tsvToContents(filePath, type);
+      if (Platform.isAndroid) {
+        await requestStoragePermission();
+        SafDocumentFile? file = await SafUtil().pickFile(mimeTypes: [
+          'text/tab-separated-values',
+          'text/comma-separated-values',
+        ]);
+        if (file != null) {
+          List<int> fileBytes = await SafStream().readFileBytes(file.uri);
+          content = utf8.decode(fileBytes);
+        }
+      } else {
+        FilePickerResult? result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['tsv', 'csv'],
+          withData: true,
+        );
+        final filePath = result?.files.single.path;
+        if (filePath != null) {
+          content = await File(filePath).readAsString();
+        }
+      }
+
+      if (content != null) {
+        final contents = await tsvToContents(content, type);
         switch (type) {
           case ContentType.app:
             await appBox.clear();
