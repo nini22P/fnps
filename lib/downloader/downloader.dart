@@ -309,6 +309,8 @@ class Downloader {
     }
   }
 
+  DateTime? lastUpdateTime;
+
   void Function(int, int) onReceiveCallback(
     Content content,
     int partialFileLength,
@@ -319,6 +321,15 @@ class Downloader {
       ) {
         DownloadItem? downloadItem = downloadBox.get(content.getID());
         if (downloadItem == null) return;
+
+        DateTime now = DateTime.now();
+
+        if (lastUpdateTime != null &&
+            now.difference(lastUpdateTime!).inSeconds < 1) {
+          return;
+        }
+
+        lastUpdateTime = now;
 
         downloadBox.put(
           downloadItem.id,

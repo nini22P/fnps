@@ -86,13 +86,14 @@ class ContentPageInfo extends HookWidget {
     }
 
     void downloadContents() {
-      final contents = [
+      List<Content> contents = [
         content,
         if (update != null) update,
         if (dlcs.isNotEmpty) ...dlcs,
         if (themes.isNotEmpty) ...themes,
       ];
-      downloader.add(contents);
+      downloader.add(
+          contents.where((content) => content.pkgDirectLink != null).toList());
     }
 
     return SingleChildScrollView(
