@@ -30,7 +30,7 @@ class HomePage extends HookWidget {
         children: const [
           Contents(types: [ContentType.app]),
           Contents(types: [ContentType.theme]),
-          // Downloads(),
+          Downloads(),
           Settings(),
         ],
       ),
@@ -54,10 +54,10 @@ class HomePage extends HookWidget {
             icon: const Icon(Icons.palette),
             label: t.theme,
           ),
-          // BottomNavigationBarItem(
-          //   icon: const Icon(Icons.download),
-          //   label: t.download,
-          // ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.download),
+            label: t.download,
+          ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.settings),
             label: t.settings,

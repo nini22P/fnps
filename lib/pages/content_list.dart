@@ -6,6 +6,7 @@ import 'package:vita_dl/downloader/downloader.dart';
 import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/models/download_item.dart';
+import 'package:vita_dl/pages/content_page/content_page.dart';
 import 'package:vita_dl/utils/file_size_convert.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
 
@@ -42,6 +43,7 @@ class ContentList extends HookWidget {
       shrinkWrap: true,
       physics: scroll ? null : const NeverScrollableScrollPhysics(),
       itemCount: contents.length,
+      padding: const EdgeInsets.only(bottom: 96),
       itemBuilder: (context, index) {
         final content = contents[index];
         final DownloadItem? downloadItem = downloads.get(content.getID());
@@ -70,22 +72,22 @@ class ContentList extends HookWidget {
                   switch (downloadItem.downloadStatus) {
                     case DownloadStatus.queued:
                       return Text(
-                          '${t.download_queued} ${(downloadItem.progress * 100).toStringAsFixed(0)}%');
+                          '${t.download_queued} ${(downloadItem.progress * 100).toStringAsFixed(2)}%');
                     case DownloadStatus.downloading:
                       return Text(
-                          '${t.downloading} ${(downloadItem.progress * 100).toStringAsFixed(0)}%');
+                          '${t.downloading} ${(downloadItem.progress * 100).toStringAsFixed(2)}%');
                     case DownloadStatus.completed:
                       return Text(
-                          '${t.download_completed} ${(downloadItem.progress * 100).toStringAsFixed(0)}%');
+                          '${t.download_completed} ${(downloadItem.progress * 100).toStringAsFixed(2)}%');
                     case DownloadStatus.failed:
                       return Text(
-                          '${t.download_failed} ${(downloadItem.progress * 100).toStringAsFixed(0)}%');
+                          '${t.download_failed} ${(downloadItem.progress * 100).toStringAsFixed(2)}%');
                     case DownloadStatus.paused:
                       return Text(
-                          '${t.download_paused} ${(downloadItem.progress * 100).toStringAsFixed(0)}%');
+                          '${t.download_paused} ${(downloadItem.progress * 100).toStringAsFixed(2)}%');
                     case DownloadStatus.canceled:
                       return Text(
-                          '${t.download_canceled} ${(downloadItem.progress * 100).toStringAsFixed(0)}%');
+                          '${t.download_canceled} ${(downloadItem.progress * 100).toStringAsFixed(2)}%');
                   }
                 }(),
                 backgroundColor: Colors.blueGrey,
@@ -110,8 +112,8 @@ class ContentList extends HookWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               ),
           ]),
-          onTap: () =>
-              Navigator.pushNamed(context, '/content', arguments: content),
+          onTap: () => Navigator.pushNamed(context, '/content',
+              arguments: ContentPageProps(content: content)),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -139,7 +141,7 @@ class ContentList extends HookWidget {
                           return const SizedBox();
                         case ExtractStatus.completed:
                           return IconButton(
-                            tooltip: t.remove_item,
+                            tooltip: t.remove_downloaded_pkg,
                             icon: const Icon(Icons.delete),
                             onPressed: () => downloader.remove([content]),
                           );
@@ -175,7 +177,7 @@ class ContentList extends HookWidget {
                       ),
                     if (downloadItem != null)
                       PopupMenuItem(
-                        child: Text(t.remove_item),
+                        child: Text(t.remove_downloaded_pkg),
                         onTap: () => downloader.remove([content]),
                       ),
                   ],

@@ -89,7 +89,15 @@ class Downloader {
     for (final content in contents) {
       final downloadItem = downloadBox.get(content.getID());
       final id = downloadItem?.id;
-      if (downloadItem == null || id == null) continue;
+      if (downloadItem == null ||
+          id == null ||
+          [
+            DownloadStatus.canceled,
+            DownloadStatus.completed,
+            DownloadStatus.failed
+          ].contains(downloadItem.downloadStatus)) {
+        continue;
+      }
 
       logger('Pausing $id (Dio: set status to paused)...');
       downloadBox.put(
@@ -99,6 +107,7 @@ class Downloader {
       final cancelToken = cancelTokens[id];
       if (cancelToken != null && !cancelToken.isCancelled) {
         cancelToken.cancel('Download paused');
+        runningTasks--;
       }
       if (_queue.contains(content)) {
         _queue.remove(content);

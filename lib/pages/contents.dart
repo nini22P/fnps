@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/config.dart';
 import 'package:vita_dl/models/content.dart';
+import 'package:vita_dl/pages/content_page/content_page.dart';
 import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/utils/file_size_convert.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
@@ -167,7 +168,8 @@ class Contents extends HookWidget {
                 ),
                 onTap: () {
                   focusNode.unfocus();
-                  Navigator.pushNamed(context, '/content', arguments: content);
+                  Navigator.pushNamed(context, '/content',
+                      arguments: ContentPageProps(content: content));
                 },
               );
             },

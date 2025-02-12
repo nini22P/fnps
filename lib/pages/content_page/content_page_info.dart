@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -16,9 +17,11 @@ import 'package:vita_dl/utils/get_localizations.dart';
 import 'package:vita_dl/utils/uri.dart';
 
 class ContentPageInfo extends HookWidget {
-  const ContentPageInfo({super.key, required this.content});
+  const ContentPageInfo(
+      {super.key, required this.content, required this.downloadContents});
 
   final Content content;
+  final void Function() downloadContents;
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +32,10 @@ class ContentPageInfo extends HookWidget {
 
     final dlcBox = useMemoized(() => Hive.box<Content>(dlcBoxName));
     final themeBox = useMemoized(() => Hive.box<Content>(themeBoxName));
-    final downloadBox =
-        useMemoized(() => Hive.box<DownloadItem>(downloadBoxName));
+    // final downloadBox =
+    //     useMemoized(() => Hive.box<DownloadItem>(downloadBoxName));
 
-    final downloader = Downloader.instance;
+    // final downloader = Downloader.instance;
 
     List<Content> getDLCs() => content.type != ContentType.app
         ? []
@@ -62,7 +65,10 @@ class ContentPageInfo extends HookWidget {
     final dlcs = useMemoized(() => getDLCs());
     final themes = useMemoized(() => getThemes());
 
-    final downloads = useListenable(downloadBox.listenable()).value;
+    // final currentDownload = useListenableSelector(
+    //     downloadBox.listenable(),
+    //     () => downloadBox.values
+    //         .firstWhereOrNull((item) => item.id == content.getID()));
 
     final int size = useMemoized(() {
       int size = 0;
@@ -83,17 +89,6 @@ class ContentPageInfo extends HookWidget {
           SnackBar(content: Text(description)),
         );
       }
-    }
-
-    void downloadContents() {
-      List<Content> contents = [
-        content,
-        if (update != null) update,
-        if (dlcs.isNotEmpty) ...dlcs,
-        if (themes.isNotEmpty) ...themes,
-      ];
-      downloader.add(
-          contents.where((content) => content.pkgDirectLink != null).toList());
     }
 
     return SingleChildScrollView(
@@ -185,42 +180,19 @@ class ContentPageInfo extends HookWidget {
                               '${t.version}: ${update?.appVersion ?? content.appVersion}'),
                         if (content.fileSize != 0)
                           Text('${t.size}: ${fileSizeConv(size)}'),
+                        if (content.contentID != null)
+                          Text('${t.content_id}: ${content.contentID}'),
                       ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 // 各种按钮
-                if (content.type == ContentType.app)
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      ElevatedButton(
-                        onPressed: content.pkgDirectLink == null
-                            ? null
-                            : () => downloadContents(),
-                        child: Text(
-                          content.pkgDirectLink == null
-                              ? t.download_link_not_available
-                              : t.download_all_items,
-                        ),
-                      ),
-                    ],
-                  ),
                 if (content.type != ContentType.app)
                   Wrap(
                     spacing: 8,
                     runSpacing: 4,
                     children: [
-                      ElevatedButton(
-                        onPressed: content.pkgDirectLink == null
-                            ? null
-                            : () => downloader.add([content]),
-                        child: Text(content.pkgDirectLink == null
-                            ? t.download_link_not_available
-                            : t.download),
-                      ),
                       content.pkgDirectLink == null
                           ? const SizedBox()
                           : ElevatedButton(

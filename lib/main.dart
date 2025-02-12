@@ -71,10 +71,10 @@ class VitaDL extends HookWidget {
       home: const HomePage(title: 'VitaDL'),
       onGenerateRoute: (settings) {
         if (settings.name == '/content') {
-          final content = settings.arguments as Content;
+          final props = settings.arguments as ContentPageProps;
           return MaterialPageRoute(
             builder: (context) {
-              return ContentPage(content: content);
+              return ContentPage(props: props);
             },
           );
         }
