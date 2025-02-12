@@ -92,6 +92,7 @@ class ContentPageInfo extends HookWidget {
     }
 
     return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 96),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -188,32 +189,31 @@ class ContentPageInfo extends HookWidget {
                 ),
                 const SizedBox(height: 16),
                 // 各种按钮
-                if (content.type != ContentType.app)
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      content.pkgDirectLink == null
-                          ? const SizedBox()
-                          : ElevatedButton(
-                              onPressed: () => copyToClipboard(
-                                  '${content.pkgDirectLink}',
-                                  t.download_link_copied),
-                              child: Text(content.pkgDirectLink == null
-                                  ? t.download_link_not_available
-                                  : t.copy_download_link),
-                            ),
-                      ElevatedButton(
-                        onPressed: content.zRIF == null
-                            ? null
-                            : () => copyToClipboard(
-                                '${content.zRIF}', t.zrif_copied),
-                        child: Text(content.zRIF == null
-                            ? t.zrif_not_available
-                            : '${t.copy} zRIF'),
-                      ),
-                    ],
-                  ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    content.pkgDirectLink == null
+                        ? const SizedBox()
+                        : ElevatedButton(
+                            onPressed: () => copyToClipboard(
+                                '${content.pkgDirectLink}',
+                                t.download_link_copied),
+                            child: Text(content.pkgDirectLink == null
+                                ? t.download_link_not_available
+                                : t.copy_download_link),
+                          ),
+                    ElevatedButton(
+                      onPressed: content.zRIF == null
+                          ? null
+                          : () =>
+                              copyToClipboard('${content.zRIF}', t.zrif_copied),
+                      child: Text(content.zRIF == null
+                          ? t.zrif_not_available
+                          : '${t.copy} zRIF'),
+                    ),
+                  ],
+                ),
                 // 截图
                 contentInfo == null || contentInfo.images.isEmpty
                     ? const SizedBox()

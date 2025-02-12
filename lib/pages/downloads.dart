@@ -78,8 +78,10 @@ class Downloads extends HookWidget {
               ),
               const SizedBox(width: 4),
               Badge(
-                label: Text(
-                    '${currentCompletedDownloads.length} / ${currentDownloads.length}'),
+                label: Text(currentCompletedDownloads.length ==
+                        currentDownloads.length
+                    ? '${currentCompletedDownloads.length}'
+                    : '${currentCompletedDownloads.length} / ${currentDownloads.length}'),
                 backgroundColor: Colors.blueGrey,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               ),

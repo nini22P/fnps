@@ -9,7 +9,7 @@ import 'package:vita_dl/models/download_item.dart';
 import 'package:vita_dl/pages/content_list.dart';
 import 'package:vita_dl/pages/content_page/content_page_info.dart';
 import 'package:vita_dl/provider/config_provider.dart';
-import 'package:vita_dl/utils/content_info.dart';
+import 'package:vita_dl/utils/get_contents_by_title_id.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
 
 class ITab {
@@ -50,46 +50,18 @@ class ContentPage extends HookWidget {
     final config = configProvider.config;
     String? hmacKey = config.hmacKey;
 
-    final dlcBox = useMemoized(() => Hive.box<Content>(dlcBoxName));
-    final themeBox = useMemoized(() => Hive.box<Content>(themeBoxName));
     final downloadBox =
         useMemoized(() => Hive.box<DownloadItem>(downloadBoxName));
 
     final downloader = Downloader.instance;
 
-    List<Content> getDLCs() => content.type != ContentType.app
-        ? []
-        : dlcBox.values
-            .where((item) => content.titleID == item.titleID)
-            .toList();
-
-    List<Content> getThemes() => content.type != ContentType.app
-        ? []
-        : themeBox.values
-            .where((item) => content.titleID == item.titleID)
-            .toList();
-
-    Future<Content?> getUpdate(String hmacKey) async =>
-        content.type != ContentType.app || hmacKey.isEmpty
-            ? null
-            : await getUpdateLink(content, hmacKey);
-
-    final updateFuture =
-        useMemoized(() => hmacKey == null ? null : getUpdate(hmacKey));
-    final update = useFuture(updateFuture).data;
-    final dlcs = useMemoized(() => getDLCs());
-    final themes = useMemoized(() => getThemes());
-
     final downloads = useListenable(downloadBox.listenable()).value;
 
-    List<Content> contents = useMemoized(
-        () => [
-              content,
-              if (update != null) update,
-              ...dlcs,
-              ...themes,
-            ],
-        [update, dlcs, themes]);
+    final getContents = useMemoized(() async => content.type != ContentType.app
+        ? [content]
+        : await getContentsByTitleID(content.titleID, hmacKey));
+
+    List<Content> contents = useFuture(getContents).data ?? [];
 
     final canDownloadContents = useMemoized(
         () => contents.where((item) => item.pkgDirectLink != null).toList(),
@@ -156,20 +128,25 @@ class ContentPage extends HookWidget {
         controller: tabController,
         children: tabs.map((e) => e.child).toList(),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        icon: Icon(isDownloading ? Icons.pause : Icons.download),
-        label: Text(currentDownloads.isEmpty
-            ? t.download_all_downloadable_content
-            : currentDownloads.length == canDownloadContents.length
-                ? '${t.downloaded} ${currentCompletedDownloads.length} / ${currentDownloads.length}'
-                : '${t.downloaded} ${currentCompletedDownloads.length} / ${currentDownloads.length} / ${canDownloadContents.length}'),
-        onPressed: () => isDownloading
-            ? downloader.pause(contents)
-            : incompletedDownloads.isNotEmpty
-                ? downloader
-                    .add(incompletedDownloads.map((e) => e.content).toList())
-                : downloadContents(),
-      ),
+      floatingActionButton: canDownloadContents.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              icon: Icon(isDownloading ? Icons.pause : Icons.download),
+              label: Text(currentDownloads.isEmpty
+                  ? canDownloadContents.length == 1 &&
+                          content.pkgDirectLink != null
+                      ? t.download
+                      : t.download_all_downloadable_content
+                  : currentDownloads.length == canDownloadContents.length
+                      ? '${t.downloaded} ${currentCompletedDownloads.length} / ${currentDownloads.length}'
+                      : '${t.downloaded} ${currentCompletedDownloads.length} / ${currentDownloads.length} / ${canDownloadContents.length}'),
+              onPressed: () => isDownloading
+                  ? downloader.pause(contents)
+                  : incompletedDownloads.isNotEmpty
+                      ? downloader.add(
+                          incompletedDownloads.map((e) => e.content).toList())
+                      : downloadContents(),
+            ),
       floatingActionButtonAnimator: FloatingActionButtonAnimator.scaling,
     );
   }
