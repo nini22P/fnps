@@ -131,8 +131,8 @@ class Downloader {
           File file = File(filePath);
           File partialFile = File(partialFilePath);
 
-          var fileExist = await file.exists();
-          var partialFileExist = await partialFile.exists();
+          bool fileExist = await file.exists();
+          bool partialFileExist = await partialFile.exists();
 
           try {
             if (fileExist) await file.delete();
@@ -179,14 +179,21 @@ class Downloader {
 
       final String filePath =
           pathJoin([...downloadItem.directory, downloadItem.filename]);
+
       File file = File(filePath);
       partialFilePath =
           pathJoin([...downloadItem.directory, downloadItem.filename]) +
               partialExtension;
       partialFile = File(partialFilePath);
 
-      var fileExist = await file.exists();
-      var partialFileExist = await partialFile.exists();
+      File tempFile = File(partialFilePath + tempExtension);
+
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
+
+      bool fileExist = await file.exists();
+      bool partialFileExist = await partialFile.exists();
 
       if (fileExist) {
         logger("File Exists");
@@ -200,9 +207,9 @@ class Downloader {
       } else if (partialFileExist) {
         logger("Partial File Exists");
 
-        var partialFileLength = await partialFile.length();
+        int partialFileLength = await partialFile.length();
 
-        var response = await dio.download(
+        Response response = await dio.download(
           url,
           partialFilePath + tempExtension,
           onReceiveProgress: onReceiveCallback(content, partialFileLength),
@@ -210,14 +217,14 @@ class Downloader {
             headers: {HttpHeaders.rangeHeader: 'bytes=$partialFileLength-'},
           ),
           cancelToken: cancelToken,
-          deleteOnError: true,
+          deleteOnError: false,
         );
 
         if (response.statusCode == HttpStatus.partialContent) {
-          var ioSink = partialFile.openWrite(mode: FileMode.writeOnlyAppend);
-          var f = File(partialFilePath + tempExtension);
-          await ioSink.addStream(f.openRead());
-          await f.delete();
+          IOSink ioSink = partialFile.openWrite(mode: FileMode.writeOnlyAppend);
+          File tempFile = File(partialFilePath + tempExtension);
+          await ioSink.addStream(tempFile.openRead());
+          await tempFile.delete();
           await ioSink.close();
           await partialFile.rename(filePath);
 
@@ -230,7 +237,7 @@ class Downloader {
           );
         }
       } else {
-        var response = await dio.download(
+        Response response = await dio.download(
           url,
           partialFilePath,
           onReceiveProgress: onReceiveCallback(content, 0),
@@ -250,6 +257,16 @@ class Downloader {
         }
       }
     } catch (e) {
+      IOSink ioSink = partialFile.openWrite(mode: FileMode.writeOnlyAppend);
+      File tempFile = File(partialFilePath + tempExtension);
+
+      if (await tempFile.exists()) {
+        await ioSink.addStream(tempFile.openRead());
+        await tempFile.delete();
+      }
+
+      await ioSink.close();
+
       DownloadItem? downloadItem = downloadBox.get(content.getID());
       if (downloadItem!.downloadStatus != DownloadStatus.canceled &&
           downloadItem.downloadStatus != DownloadStatus.paused) {
@@ -258,13 +275,6 @@ class Downloader {
           downloadItem.id,
           downloadItem.copyWith(downloadStatus: DownloadStatus.failed),
         );
-      } else if (downloadItem.downloadStatus == DownloadStatus.paused) {
-        final ioSink = partialFile.openWrite(mode: FileMode.writeOnlyAppend);
-        final f = File(partialFilePath + tempExtension);
-        if (await f.exists()) {
-          await ioSink.addStream(f.openRead());
-        }
-        await ioSink.close();
       }
     } finally {
       DownloadItem? downloadItem = downloadBox.get(content.getID());

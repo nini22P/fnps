@@ -1,15 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_html/flutter_html.dart' as html;
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:vita_dl/downloader/downloader.dart';
 import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/models/download_item.dart';
 import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/utils/content_info.dart';
 import 'package:vita_dl/utils/file_size_convert.dart';
@@ -32,10 +29,6 @@ class ContentPageInfo extends HookWidget {
 
     final dlcBox = useMemoized(() => Hive.box<Content>(dlcBoxName));
     final themeBox = useMemoized(() => Hive.box<Content>(themeBoxName));
-    // final downloadBox =
-    //     useMemoized(() => Hive.box<DownloadItem>(downloadBoxName));
-
-    // final downloader = Downloader.instance;
 
     List<Content> getDLCs() => content.type != ContentType.app
         ? []
@@ -64,11 +57,6 @@ class ContentPageInfo extends HookWidget {
     final update = useFuture(updateFuture).data;
     final dlcs = useMemoized(() => getDLCs());
     final themes = useMemoized(() => getThemes());
-
-    // final currentDownload = useListenableSelector(
-    //     downloadBox.listenable(),
-    //     () => downloadBox.values
-    //         .firstWhereOrNull((item) => item.id == content.getID()));
 
     final int size = useMemoized(() {
       int size = 0;
