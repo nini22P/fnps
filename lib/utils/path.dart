@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:android_x_storage/android_x_storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:vita_dl/utils/get_native_library_dir.dart';
-import 'package:vita_dl/utils/is_desktop.dart';
+import 'package:vita_dl/utils/platform.dart';
 import 'package:vita_dl/utils/path_conv.dart';
 import 'package:vita_dl/utils/pkg.dart';
 import 'package:path/path.dart' as p;

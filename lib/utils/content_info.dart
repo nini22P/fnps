@@ -110,7 +110,8 @@ Future<Content?> getUpdate(Content content, String hmacKey) async {
 
   if (updateinfo != null) {
     return Content(
-      type: ContentType.update,
+      platform: content.platform,
+      category: Category.update,
       titleID: titleID,
       name: '${content.name} ${updateinfo.version}',
       appVersion: updateinfo.version,

@@ -37,7 +37,7 @@ class ContentPageInfo extends HookWidget {
 
     final update = useMemoized(
         () => contents
-            .firstWhereOrNull((content) => content.type == ContentType.update),
+            .firstWhereOrNull((content) => content.category == Category.update),
         [contents]);
 
     final size = useMemoized(
@@ -114,7 +114,14 @@ class ContentPageInfo extends HookWidget {
                               ),
                             const SizedBox(width: 4),
                             Badge(
-                              label: Text(content.type.name.toUpperCase()),
+                              label: Text(content.platform.name.toUpperCase()),
+                              backgroundColor: Colors.blueGrey,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                            ),
+                            const SizedBox(width: 4),
+                            Badge(
+                              label: Text(content.category.name.toUpperCase()),
                               backgroundColor: Colors.blueGrey,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 2),

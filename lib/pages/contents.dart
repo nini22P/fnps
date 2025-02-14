@@ -15,10 +15,10 @@ import 'package:vita_dl/utils/get_localizations.dart';
 class Contents extends HookWidget {
   const Contents({
     super.key,
-    required this.types,
+    required this.categories,
   });
 
-  final List<ContentType> types;
+  final List<Category> categories;
 
   @override
   Widget build(BuildContext context) {
@@ -30,20 +30,18 @@ class Contents extends HookWidget {
     final sortBy = config.sortBy;
     final sortOrder = config.sortOrder;
 
-    final appBox = Hive.box<Content>(appBoxName);
-    final dlcBox = Hive.box<Content>(dlcBoxName);
-    final themeBox = Hive.box<Content>(themeBoxName);
+    final psvBox = Hive.box<Content>(psvBoxName);
+    final pspBox = Hive.box<Content>(pspBoxName);
 
     final contents = useMemoized(() => [
-          if (types.contains(ContentType.app)) ...appBox.values,
-          if (types.contains(ContentType.dlc)) ...dlcBox.values,
-          if (types.contains(ContentType.theme)) ...themeBox.values,
-        ]);
+          ...psvBox.values,
+          ...pspBox.values,
+        ].where((content) => categories.contains(content.category)).toList());
 
     final filteredContents = useState(<Content>[]);
     final sortedContents = useState(<Content>[]);
     final searchText = useState('');
-    final regions = ['JP', 'US', 'INT', 'EU', 'ASIA', 'UNKNOWN'];
+    final regions = Config.initConfig.regions;
 
     final focusNode = useFocusNode();
     final searchTextController = useTextEditingController();
@@ -262,6 +260,13 @@ class Contents extends HookWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   ),
+                const SizedBox(width: 4),
+                Badge(
+                  label: Text(content.platform.name.toUpperCase()),
+                  backgroundColor: Colors.blueGrey,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                ),
                 const SizedBox(width: 4),
                 Badge(
                   label: Text(content.titleID.toUpperCase()),

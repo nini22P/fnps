@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/pages/contents.dart';
@@ -17,16 +14,6 @@ class HomePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final t = getLocalizations(context);
-
-    useEffect(() {
-      if (Platform.isAndroid || Platform.isIOS) {
-        SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          systemNavigationBarColor: Colors.transparent,
-        ));
-      }
-      return null;
-    }, []);
 
     final selectedIndex = useState(0);
     final pageController = usePageController();
@@ -75,8 +62,8 @@ class HomePage extends HookWidget {
                 selectedIndex.value = index;
               },
               children: const [
-                Contents(types: [ContentType.app]),
-                Contents(types: [ContentType.theme]),
+                Contents(categories: [Category.game]),
+                Contents(categories: [Category.theme]),
                 Downloads(),
                 Settings(),
               ],

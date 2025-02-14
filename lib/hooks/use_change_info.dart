@@ -3,7 +3,7 @@ import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/utils/content_info.dart';
 
 List<Change> useChangeInfo(Content content, String? hmacKey) {
-  if (content.type != ContentType.update || hmacKey == null) return [];
+  if (content.category != Category.update || hmacKey == null) return [];
 
   final changeInfo = useState<List<Change>>([]);
 

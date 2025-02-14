@@ -13,6 +13,7 @@ import 'package:vita_dl/models/config.dart';
 import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
+import 'package:vita_dl/utils/platform.dart';
 import 'package:vita_dl/utils/request_storage_permission.dart';
 import 'package:vita_dl/utils/tsv_to_contents.dart';
 import 'package:vita_dl/utils/uri.dart';
@@ -26,32 +27,81 @@ class Settings extends HookWidget {
     final configProvider = Provider.of<ConfigProvider>(context);
     Config config = configProvider.config;
 
-    final appBox = Hive.box<Content>(appBoxName);
-    final dlcBox = Hive.box<Content>(dlcBoxName);
-    final themeBox = Hive.box<Content>(themeBoxName);
+    final psvBox = Hive.box<Content>(psvBoxName);
+    final pspBox = Hive.box<Content>(pspBoxName);
 
     final TextEditingController hmacKeyController =
         TextEditingController(text: config.hmacKey);
 
     Future<void> updateSource(
-      ContentType contentType,
+      Platform platform,
+      Category category,
       SourceType sourceType,
       String url,
       DateTime updateTime,
     ) async {
-      switch (contentType) {
-        case ContentType.app:
-          configProvider.updateConfig(configProvider.config.copyWith(
-              app: Source(type: sourceType, updateTime: updateTime, url: url)));
+      switch (platform) {
+        case Platform.psv:
+          switch (category) {
+            case Category.game:
+              configProvider.updateConfig(configProvider.config.copyWith(
+                  psvGames: Source(
+                type: sourceType,
+                updateTime: updateTime,
+                url: url,
+              )));
+              break;
+            case Category.dlc:
+              configProvider.updateConfig(configProvider.config.copyWith(
+                  psvDLCs: Source(
+                type: sourceType,
+                updateTime: updateTime,
+                url: url,
+              )));
+              break;
+            case Category.theme:
+              configProvider.updateConfig(configProvider.config.copyWith(
+                  psvThemes: Source(
+                type: sourceType,
+                updateTime: updateTime,
+                url: url,
+              )));
+              break;
+            case Category.update:
+              break;
+            case Category.demo:
+              configProvider.updateConfig(configProvider.config.copyWith(
+                  psvDEMOs: Source(
+                type: sourceType,
+                updateTime: updateTime,
+                url: url,
+              )));
+              break;
+          }
           break;
-        case ContentType.dlc:
-          configProvider.updateConfig(configProvider.config.copyWith(
-              dlc: Source(type: sourceType, updateTime: updateTime, url: url)));
-          break;
-        case ContentType.theme:
-          configProvider.updateConfig(configProvider.config.copyWith(
-              theme:
-                  Source(type: sourceType, updateTime: updateTime, url: url)));
+        case Platform.psp:
+          switch (category) {
+            case Category.game:
+              configProvider.updateConfig(configProvider.config.copyWith(
+                  pspGames: Source(
+                type: sourceType,
+                updateTime: updateTime,
+                url: url,
+              )));
+              break;
+            case Category.dlc:
+              configProvider.updateConfig(configProvider.config.copyWith(
+                  pspDLCs: Source(
+                type: sourceType,
+                updateTime: updateTime,
+                url: url,
+              )));
+              break;
+            case Category.theme:
+            case Category.update:
+            case Category.demo:
+              break;
+          }
           break;
         default:
           break;
@@ -61,10 +111,10 @@ class Settings extends HookWidget {
     Future<void> updateHmacKey(String hmacKey) async => configProvider
         .updateConfig(configProvider.config.copyWith(hmacKey: hmacKey));
 
-    Future<void> pickTsvFile(ContentType type) async {
+    Future<void> pickTsvFile(Platform platform, Category category) async {
       String? content;
 
-      if (Platform.isAndroid) {
+      if (isAndroid) {
         await requestStoragePermission();
         SafDocumentFile? file = await SafUtil().pickFile(mimeTypes: [
           'text/tab-separated-values',
@@ -87,31 +137,31 @@ class Settings extends HookWidget {
       }
 
       if (content != null) {
-        final contents = await tsvToContents(content, type);
-        switch (type) {
-          case ContentType.app:
-            await appBox.clear();
-            await appBox.addAll(contents);
+        final contents = await tsvToContents(content, platform, category);
+        switch (platform) {
+          case Platform.psv:
+            final values = [...psvBox.values]
+                .where((content) => content.category != category);
+            await psvBox.clear();
+            await psvBox.addAll([...values, ...contents]);
             break;
-          case ContentType.dlc:
-            await dlcBox.clear();
-            await dlcBox.addAll(contents);
-            break;
-          case ContentType.theme:
-            await themeBox.clear();
-            await themeBox.addAll(contents);
+          case Platform.psp:
+            final values = [...pspBox.values]
+                .where((content) => content.category != category);
+            await pspBox.clear();
+            await pspBox.addAll([...values, ...contents]);
             break;
           default:
             break;
         }
-        await updateSource(type, SourceType.local, '', DateTime.now().toUtc());
+        await updateSource(
+            platform, category, SourceType.local, '', DateTime.now().toUtc());
       }
     }
 
     Future<void> resetConfig() async {
-      await appBox.clear();
-      await dlcBox.clear();
-      await themeBox.clear();
+      await psvBox.clear();
+      await pspBox.clear();
       await configProvider.resetConfig();
     }
 
@@ -124,41 +174,79 @@ class Settings extends HookWidget {
         child: Column(
           children: [
             ListTile(
-              title: Text(t.update_app_list),
-              subtitle: config.app.updateTime == null
+              title: Text(t.update_psv_game_list),
+              subtitle: config.psvGames.updateTime == null
                   ? const Text('')
-                  : Text(config.app.updateTime!
+                  : Text(config.psvGames.updateTime!
                       .toLocal()
                       .toIso8601String()
                       .replaceAll('T', ' ')
                       .split('.')
                       .first),
-              onTap: () => pickTsvFile(ContentType.app),
+              onTap: () => pickTsvFile(Platform.psv, Category.game),
             ),
             ListTile(
-              title: Text(t.update_dlc_list),
-              subtitle: config.dlc.updateTime == null
+              title: Text(t.update_psv_dlc_list),
+              subtitle: config.psvDLCs.updateTime == null
                   ? const Text('')
-                  : Text(config.dlc.updateTime!
+                  : Text(config.psvDLCs.updateTime!
                       .toLocal()
                       .toIso8601String()
                       .replaceAll('T', ' ')
                       .split('.')
                       .first),
-              onTap: () => pickTsvFile(ContentType.dlc),
+              onTap: () => pickTsvFile(Platform.psv, Category.dlc),
             ),
             ListTile(
-              title: Text(t.update_theme_list),
-              subtitle: config.theme.updateTime == null
+              title: Text(t.update_psv_theme_list),
+              subtitle: config.psvThemes.updateTime == null
                   ? const Text('')
-                  : Text(config.theme.updateTime!
+                  : Text(config.psvThemes.updateTime!
                       .toLocal()
                       .toIso8601String()
                       .replaceAll('T', ' ')
                       .split('.')
                       .first),
-              onTap: () => pickTsvFile(ContentType.theme),
+              onTap: () => pickTsvFile(Platform.psv, Category.theme),
             ),
+            ListTile(
+              title: Text(t.update_psv_demo_list),
+              subtitle: config.psvDEMOs.updateTime == null
+                  ? const Text('')
+                  : Text(config.psvDEMOs.updateTime!
+                      .toLocal()
+                      .toIso8601String()
+                      .replaceAll('T', ' ')
+                      .split('.')
+                      .first),
+              onTap: () => pickTsvFile(Platform.psv, Category.demo),
+            ),
+            const Divider(),
+            ListTile(
+              title: Text(t.update_psp_game_list),
+              subtitle: config.pspGames.updateTime == null
+                  ? const Text('')
+                  : Text(config.pspGames.updateTime!
+                      .toLocal()
+                      .toIso8601String()
+                      .replaceAll('T', ' ')
+                      .split('.')
+                      .first),
+              onTap: () => pickTsvFile(Platform.psp, Category.game),
+            ),
+            ListTile(
+              title: Text(t.update_psp_dlc_list),
+              subtitle: config.pspDLCs.updateTime == null
+                  ? const Text('')
+                  : Text(config.pspDLCs.updateTime!
+                      .toLocal()
+                      .toIso8601String()
+                      .replaceAll('T', ' ')
+                      .split('.')
+                      .first),
+              onTap: () => pickTsvFile(Platform.psp, Category.dlc),
+            ),
+            const Divider(),
             ListTile(
               title: Text(t.hmac_key),
               subtitle: config.hmacKey == null ? null : Text(config.hmacKey!),

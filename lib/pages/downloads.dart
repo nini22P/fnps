@@ -17,16 +17,18 @@ class Downloads extends HookWidget {
     final t = getLocalizations(context);
     final downloader = useMemoized(() => Downloader.instance);
 
-    final appBox = Hive.box<Content>(appBoxName);
+    final psvBox = Hive.box<Content>(psvBoxName);
+    final pspBox = Hive.box<Content>(pspBoxName);
     final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
 
     final downloads =
         useListenable(downloadBox.listenable()).value.values.toList();
 
     final apps = useMemoized(
-        () => appBox.values
-            .where((content) => downloads
-                .any((download) => download.content.titleID == content.titleID))
+        () => [...psvBox.values, ...pspBox.values]
+            .where((content) => downloads.any((download) =>
+                download.content == content &&
+                content.category == Category.game))
             .toList(),
         [downloads]);
 

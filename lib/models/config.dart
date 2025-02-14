@@ -1,6 +1,6 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:flutter/foundation.dart';
+import 'package:vita_dl/models/content.dart';
 
 part 'config.freezed.dart';
 part 'config.g.dart';
@@ -19,25 +19,35 @@ enum SortOrder {
 @freezed
 class Config with _$Config {
   const factory Config({
-    required Source app,
-    required Source dlc,
-    required Source theme,
-    required String? hmacKey,
+    required Source psvGames,
+    required Source psvDLCs,
+    required Source psvThemes,
+    required Source psvDEMOs,
+    required Source pspGames,
+    required Source pspDLCs,
+    required List<Platform> platforms,
+    required List<Category> categories,
     required List<String> regions,
-    @Default(SortBy.lastModificationDate) SortBy sortBy,
-    @Default(SortOrder.desc) SortOrder sortOrder,
+    String? hmacKey,
+    @Default(SortBy.name) SortBy sortBy,
+    @Default(SortOrder.asc) SortOrder sortOrder,
   }) = _Config;
 
   factory Config.fromJson(Map<String, dynamic> json) => _$ConfigFromJson(json);
 
   static final initConfig = Config(
-    app: const Source(type: SourceType.local, updateTime: null, url: null),
-    dlc: const Source(type: SourceType.local, updateTime: null, url: null),
-    theme: const Source(type: SourceType.local, updateTime: null, url: null),
+    psvGames: const Source(type: SourceType.local),
+    psvDLCs: const Source(type: SourceType.local),
+    psvThemes: const Source(type: SourceType.local),
+    psvDEMOs: const Source(type: SourceType.local),
+    pspGames: const Source(type: SourceType.local),
+    pspDLCs: const Source(type: SourceType.local),
+    platforms: [Platform.psv, Platform.psp],
+    categories: [Category.game, Category.dlc, Category.theme, Category.demo],
+    regions: ['JP', 'ASIA', 'US', 'EU', 'INT', 'UNKNOWN'],
     hmacKey: dotenv.env['HMAC_KEY'],
-    regions: ['JP', 'US', 'INT', 'EU', 'ASIA', 'UNKNOWN'],
-    sortBy: SortBy.lastModificationDate,
-    sortOrder: SortOrder.desc,
+    sortBy: SortBy.name,
+    sortOrder: SortOrder.asc,
   );
 }
 
@@ -47,8 +57,8 @@ enum SourceType { remote, local }
 class Source with _$Source {
   const factory Source({
     required SourceType type,
-    required DateTime? updateTime,
-    required String? url,
+    DateTime? updateTime,
+    String? url,
   }) = _Source;
 
   factory Source.fromJson(Map<String, dynamic> json) => _$SourceFromJson(json);

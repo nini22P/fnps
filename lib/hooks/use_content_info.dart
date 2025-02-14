@@ -24,7 +24,7 @@ ContentInfo useContentInfo(Content content) {
 
   final icon = useMemoized(() => getContentIcon(content));
 
-  if (content.type == ContentType.update) {
+  if (content.category == Category.update) {
     return ContentInfo(icon: icon, media: [], desc: null);
   }
 

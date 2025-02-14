@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:vita_dl/globals.dart' as globals;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:vita_dl/hive/hive_box_names.dart';
+import 'package:vita_dl/hive_registrar.g.dart';
 import 'package:vita_dl/models/download_item.dart';
 import 'package:vita_dl/provider/config_provider.dart';
 import 'package:vita_dl/models/content.dart';
@@ -15,6 +16,7 @@ import 'package:vita_dl/pages/content_page/content_page.dart';
 import 'package:vita_dl/pages/home_page.dart';
 import 'package:vita_dl/downloader/downloader.dart';
 import 'package:vita_dl/utils/path.dart';
+import 'package:vita_dl/utils/platform.dart';
 import 'package:vita_dl/utils/request_storage_permission.dart';
 
 Future<void> main() async {
@@ -24,16 +26,11 @@ Future<void> main() async {
 
   await Hive.initFlutter(pathJoin(configPath));
 
-  Hive.registerAdapter(ContentAdapter());
-  Hive.registerAdapter(ContentTypeAdapter());
-  Hive.registerAdapter(DownloadItemAdapter());
-  Hive.registerAdapter(DownloadStatusAdapter());
-  Hive.registerAdapter(ExtractStatusAdapter());
+  Hive.registerAdapters();
 
   await Hive.openBox<DownloadItem>(downloadBoxName);
-  await Hive.openBox<Content>(appBoxName);
-  await Hive.openBox<Content>(dlcBoxName);
-  await Hive.openBox<Content>(themeBoxName);
+  await Hive.openBox<Content>(psvBoxName);
+  await Hive.openBox<Content>(pspBoxName);
 
   await Downloader.instance.init();
 
@@ -52,7 +49,7 @@ class VitaDL extends HookWidget {
   Widget build(BuildContext context) {
     useEffect(() {
       () async {
-        globals.storagePermissionStatus = Platform.isAndroid
+        globals.storagePermissionStatus = isAndroid
             ? await isAndroid11OrHigher()
                 ? await Permission.manageExternalStorage.status
                 : await Permission.storage.status
@@ -60,6 +57,17 @@ class VitaDL extends HookWidget {
       }();
       return null;
     }, []);
+
+    useEffect(() {
+      if (isAndroid || isIOS) {
+        SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: Colors.transparent,
+        ));
+      }
+      return null;
+    }, []);
+
     return MaterialApp(
       title: 'VitaDL',
       theme: ThemeData(

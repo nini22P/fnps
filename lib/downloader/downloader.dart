@@ -301,7 +301,10 @@ class Downloader {
 
         final result = await pkg2zip(
           path: path,
-          extract: content.type == ContentType.theme ? false : true,
+          extract: content.platform == Platform.psv &&
+                  content.category == Category.theme
+              ? false
+              : true,
           zRIF: content.zRIF,
         );
 
