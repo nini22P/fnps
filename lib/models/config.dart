@@ -5,6 +5,17 @@ import 'package:flutter/foundation.dart';
 part 'config.freezed.dart';
 part 'config.g.dart';
 
+enum SortBy {
+  name,
+  titleID,
+  lastModificationDate,
+}
+
+enum SortOrder {
+  asc,
+  desc,
+}
+
 @freezed
 class Config with _$Config {
   const factory Config({
@@ -13,6 +24,8 @@ class Config with _$Config {
     required Source theme,
     required String? hmacKey,
     required List<String> regions,
+    @Default(SortBy.lastModificationDate) SortBy sortBy,
+    @Default(SortOrder.desc) SortOrder sortOrder,
   }) = _Config;
 
   factory Config.fromJson(Map<String, dynamic> json) => _$ConfigFromJson(json);
@@ -23,6 +36,8 @@ class Config with _$Config {
     theme: const Source(type: SourceType.local, updateTime: null, url: null),
     hmacKey: dotenv.env['HMAC_KEY'],
     regions: ['JP', 'US', 'INT', 'EU', 'ASIA', 'UNKNOWN'],
+    sortBy: SortBy.lastModificationDate,
+    sortOrder: SortOrder.desc,
   );
 }
 

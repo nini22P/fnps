@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:vita_dl/downloader/downloader.dart';
@@ -7,6 +6,7 @@ import 'package:vita_dl/hive/hive_box_names.dart';
 import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/models/download_item.dart';
 import 'package:vita_dl/pages/content_page/content_page.dart';
+import 'package:vita_dl/utils/copy_to_clipboard.dart';
 import 'package:vita_dl/utils/file_size_convert.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
 
@@ -30,15 +30,6 @@ class ContentList extends HookWidget {
 
     final downloader = useMemoized(() => Downloader.instance);
 
-    Future<void> copyToClipboard(String text, String description) async {
-      await Clipboard.setData(ClipboardData(text: text));
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(description)),
-        );
-      }
-    }
-
     return ListView.builder(
       shrinkWrap: true,
       physics: scroll ? null : const NeverScrollableScrollPhysics(),
@@ -48,9 +39,21 @@ class ContentList extends HookWidget {
         final content = contents[index];
         final DownloadItem? downloadItem = downloads.get(content.getID());
         return ListTile(
-          title: content.type == ContentType.update
-              ? Text('${content.name} ${content.appVersion}')
-              : Text(content.name),
+          // leading: ClipRRect(
+          //   borderRadius: BorderRadius.circular(8),
+          //   child: AspectRatio(
+          //     aspectRatio: 1,
+          //     child: CachedNetworkImage(
+          //       imageUrl: getContentIcon(content, size: 96)!,
+          //       fit: BoxFit.contain,
+          //       placeholder: (context, url) => const SizedBox(
+          //         child: Center(child: Icon(Icons.gamepad)),
+          //       ),
+          //       errorWidget: (context, url, error) => const Icon(Icons.gamepad),
+          //     ),
+          //   ),
+          // ),
+          title: Text(content.name),
           subtitle: Row(children: [
             Badge(
               label: Text(content.type.name.toUpperCase()),
@@ -160,13 +163,19 @@ class ContentList extends HookWidget {
                       PopupMenuItem(
                         child: Text(t.copy_download_link),
                         onTap: () => copyToClipboard(
-                            '${content.pkgDirectLink}', t.dlc_link_copied),
+                          context,
+                          '${content.pkgDirectLink}',
+                          t.dlc_link_copied,
+                        ),
                       ),
                     if (content.zRIF != null)
                       PopupMenuItem(
                         child: Text('${t.copy} zRIF'),
-                        onTap: () =>
-                            copyToClipboard('${content.zRIF}', t.zrif_copied),
+                        onTap: () => copyToClipboard(
+                          context,
+                          '${content.zRIF}',
+                          t.zrif_copied,
+                        ),
                       ),
                     if (downloadItem?.downloadStatus ==
                             DownloadStatus.completed &&

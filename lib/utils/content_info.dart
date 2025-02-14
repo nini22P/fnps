@@ -16,46 +16,10 @@ Map<String, String> regionMap = {
   "HP": "hk/zh",
 };
 
-class ContentInfo {
-  final List<String> images;
-  final String desc;
-
-  ContentInfo({
-    required this.images,
-    required this.desc,
-  });
-}
-
-String? getContentIconUrl(Content content) => content.contentID == null
+String? getContentIcon(Content content, {int? size}) => content.contentID ==
+        null
     ? null
-    : "$baseApiUrl/${regionMap[content.contentID?.substring(0, 2)]}/999/${content.contentID}/image";
-
-Future<ContentInfo> getContentInfo(String contentID) async {
-  final infoUrl =
-      "$baseApiUrl/${regionMap[contentID.substring(0, 2)]}/999/$contentID";
-
-  try {
-    final data = await DefaultCacheManager().getSingleFile(infoUrl);
-    final jsonString = await data.readAsString();
-    final json = jsonDecode(jsonString);
-
-    List<String> images = [];
-
-    for (var promo in json['promomedia']) {
-      for (var material in promo['materials']) {
-        for (var urlObj in material['urls']) {
-          images.add(urlObj['url']);
-        }
-      }
-    }
-
-    final desc = json['long_desc'] ?? '';
-
-    return ContentInfo(images: images, desc: desc);
-  } catch (e) {
-    return ContentInfo(images: [], desc: '');
-  }
-}
+    : "$baseApiUrl/${regionMap[content.contentID?.substring(0, 2)]}/999/${content.contentID}/image${size == null ? '' : '?w=$size&h=$size'}";
 
 String getUpdateXmlLink(String titleID, String hmacKey) {
   List<int> binary = [];
@@ -77,7 +41,23 @@ String getUpdateXmlLink(String titleID, String hmacKey) {
   return "http://gs-sec.ww.np.dl.playstation.net/pl/np/$titleID/$hash/$titleID-ver.xml";
 }
 
-Future<Content?> getUpdateLink(Content content, String hmacKey) async {
+class UpdateInfo {
+  final String version;
+  final int size;
+  final String url;
+  final String sha1sum;
+  final String? changeInfoUrl;
+
+  UpdateInfo({
+    required this.version,
+    required this.size,
+    required this.url,
+    required this.sha1sum,
+    this.changeInfoUrl,
+  });
+}
+
+Future<UpdateInfo?> getUpdateInfo(Content content, String hmacKey) async {
   final titleID = content.titleID;
   var xmlLink = getUpdateXmlLink(titleID, hmacKey);
 
@@ -98,31 +78,80 @@ Future<Content?> getUpdateLink(Content content, String hmacKey) async {
 
       final package = tag.findElements('package').first;
 
-      final paramsfo = package.findElements('paramsfo').first;
-
-      final title = paramsfo.findElements('title').first.innerText;
-
       final version = package.getAttribute('version');
-      final size = package.getAttribute('size') ?? '0';
+      final size = int.tryParse(package.getAttribute('size') ?? '0');
       final url = package.getAttribute('url');
-      final contentID = package.getAttribute('content_id');
       final sha1sum = package.getAttribute('sha1sum');
 
-      return Content(
-        type: ContentType.update,
-        titleID: titleID,
-        name: content.name,
-        appVersion: version,
-        fileSize: int.tryParse(size),
-        pkgDirectLink: url,
-        contentID: contentID,
-        originalName: title,
+      final changeinfo = package.findElements('changeinfo').first;
+      final changeInfoUrl = changeinfo.getAttribute('url');
+
+      if (version == null || size == null || url == null || sha1sum == null) {
+        return null;
+      }
+
+      return UpdateInfo(
+        version: version,
+        size: size,
+        url: url,
         sha1sum: sha1sum,
-        zRIF: content.zRIF,
+        changeInfoUrl: changeInfoUrl,
       );
     }
   } catch (e) {
     return null;
   }
   return null;
+}
+
+Future<Content?> getUpdate(Content content, String hmacKey) async {
+  final titleID = content.titleID;
+  final updateinfo = await getUpdateInfo(content, hmacKey);
+
+  if (updateinfo != null) {
+    return Content(
+      type: ContentType.update,
+      titleID: titleID,
+      name: '${content.name} ${updateinfo.version}',
+      appVersion: updateinfo.version,
+      fileSize: updateinfo.size,
+      pkgDirectLink: updateinfo.url,
+      contentID: content.contentID,
+      originalName: content.originalName,
+      sha1sum: updateinfo.sha1sum,
+      zRIF: content.zRIF,
+    );
+  }
+
+  return null;
+}
+
+class Change {
+  final String version;
+  final String desc;
+
+  Change({required this.version, required this.desc});
+}
+
+Future<List<Change>> getChangeInfo(String url) async {
+  final changeInfo = <Change>[];
+  try {
+    final data = await DefaultCacheManager().getSingleFile(url);
+    final contents = await data.readAsString();
+    final document = XmlDocument.parse(contents);
+
+    final changeinfo = document.findAllElements('changes');
+
+    for (final changes in changeinfo) {
+      final version = changes.getAttribute('app_ver');
+      final desc = changes.innerText;
+
+      if (version != null) {
+        changeInfo.add(Change(version: version, desc: desc));
+      }
+    }
+  } catch (e) {
+    logger('getChangeInfo error', error: e);
+  }
+  return changeInfo;
 }

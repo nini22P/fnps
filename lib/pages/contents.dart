@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
@@ -7,6 +8,7 @@ import 'package:vita_dl/models/config.dart';
 import 'package:vita_dl/models/content.dart';
 import 'package:vita_dl/pages/content_page/content_page.dart';
 import 'package:vita_dl/provider/config_provider.dart';
+import 'package:vita_dl/utils/content_info.dart';
 import 'package:vita_dl/utils/file_size_convert.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
 
@@ -25,6 +27,8 @@ class Contents extends HookWidget {
     final configProvider = Provider.of<ConfigProvider>(context);
     Config config = configProvider.config;
     final selectedRegions = config.regions;
+    final sortBy = config.sortBy;
+    final sortOrder = config.sortOrder;
 
     final appBox = Hive.box<Content>(appBoxName);
     final dlcBox = Hive.box<Content>(dlcBoxName);
@@ -62,10 +66,21 @@ class Contents extends HookWidget {
     }, [searchText.value, selectedRegions, contents]);
 
     useEffect(() {
-      sortedContents.value = [...filteredContents.value]
-        ..sort((a, b) => a.name.compareTo(b.name));
+      List<Content> contents = [...filteredContents.value]..sort((a, b) {
+          switch (sortBy) {
+            case SortBy.titleID:
+              return a.titleID.compareTo(b.titleID);
+            case SortBy.name:
+              return a.name.compareTo(b.name);
+            case SortBy.lastModificationDate:
+              return (a.lastModificationDate ?? '')
+                  .compareTo(b.lastModificationDate ?? '');
+          }
+        });
+      sortedContents.value =
+          sortOrder == SortOrder.asc ? contents : contents.reversed.toList();
       return;
-    }, [filteredContents.value]);
+    }, [filteredContents.value, sortBy, sortOrder]);
 
     void clearSearchText() {
       searchTextController.clear();
@@ -73,109 +88,226 @@ class Contents extends HookWidget {
       focusNode.unfocus();
     }
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TextField(
-            style: const TextStyle(height: 1),
-            controller: searchTextController,
-            focusNode: focusNode,
-            onChanged: (value) => searchText.value = value,
-            decoration: InputDecoration(
-              labelText: t.serach,
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  searchText.value.isEmpty
-                      ? const SizedBox()
-                      : IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: clearSearchText,
-                        ),
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.filter_list),
-                    onOpened: () => focusNode.unfocus(),
-                    itemBuilder: (BuildContext context) => regions
-                        .map(
-                          (String region) => CheckedPopupMenuItem<String>(
-                            value: region,
-                            checked: selectedRegions.contains(region),
-                            child: Text(region),
-                            onTap: () {
-                              focusNode.unfocus();
-                              if (selectedRegions.contains(region)) {
-                                configProvider.updateConfig(config.copyWith(
-                                    regions: selectedRegions
-                                        .where((element) => element != region)
-                                        .toList()));
-                              } else {
-                                configProvider.updateConfig(config.copyWith(
-                                    regions: [...selectedRegions, region]));
-                              }
-                            },
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('VitaDL'),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: isMobile ? 1 : 0,
+              child: SizedBox(
+                width: 300,
+                height: 40,
+                child: TextField(
+                  style: const TextStyle(height: 1),
+                  controller: searchTextController,
+                  focusNode: focusNode,
+                  onChanged: (value) => searchText.value = value,
+                  decoration: InputDecoration(
+                    labelText: t.serach,
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (searchText.value.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: clearSearchText,
                           ),
-                        )
-                        .toList(),
+                        PopupMenuButton<String>(
+                            icon: const Icon(Icons.filter_list),
+                            onOpened: () => focusNode.unfocus(),
+                            itemBuilder: (BuildContext context) => [
+                                  ...regions.map(
+                                    (String region) =>
+                                        CheckedPopupMenuItem<String>(
+                                      value: region,
+                                      checked: selectedRegions.contains(region),
+                                      child: Text(region),
+                                      onTap: () {
+                                        focusNode.unfocus();
+                                        if (selectedRegions.contains(region)) {
+                                          configProvider.updateConfig(
+                                              config.copyWith(
+                                                  regions: selectedRegions
+                                                      .where((element) =>
+                                                          element != region)
+                                                      .toList()));
+                                        } else {
+                                          configProvider
+                                              .updateConfig(config.copyWith(
+                                            regions: [
+                                              ...selectedRegions,
+                                              region
+                                            ],
+                                          ));
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  const PopupMenuDivider(),
+                                  PopupMenuItem(
+                                    child: ListTile(
+                                      mouseCursor: SystemMouseCursors.click,
+                                      title: Text(t.name),
+                                      trailing: sortBy == SortBy.name
+                                          ? Icon(sortOrder == SortOrder.asc
+                                              ? Icons.arrow_upward_rounded
+                                              : Icons.arrow_downward_rounded)
+                                          : null,
+                                    ),
+                                    onTap: () => configProvider.updateConfig(
+                                      config.copyWith(
+                                          sortBy: SortBy.name,
+                                          sortOrder:
+                                              sortOrder == SortOrder.desc ||
+                                                      sortBy != SortBy.name
+                                                  ? SortOrder.asc
+                                                  : SortOrder.desc),
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    child: ListTile(
+                                      mouseCursor: SystemMouseCursors.click,
+                                      title: Text(t.title_id),
+                                      trailing: sortBy == SortBy.titleID
+                                          ? Icon(sortOrder == SortOrder.asc
+                                              ? Icons.arrow_upward_rounded
+                                              : Icons.arrow_downward_rounded)
+                                          : null,
+                                    ),
+                                    onTap: () => configProvider.updateConfig(
+                                      config.copyWith(
+                                          sortBy: SortBy.titleID,
+                                          sortOrder:
+                                              sortOrder == SortOrder.desc ||
+                                                      sortBy != SortBy.titleID
+                                                  ? SortOrder.asc
+                                                  : SortOrder.desc),
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    child: ListTile(
+                                      mouseCursor: SystemMouseCursors.click,
+                                      title: Text(t.last_modification_date),
+                                      trailing: sortBy ==
+                                              SortBy.lastModificationDate
+                                          ? Icon(sortOrder == SortOrder.asc
+                                              ? Icons.arrow_upward_rounded
+                                              : Icons.arrow_downward_rounded)
+                                          : null,
+                                    ),
+                                    onTap: () => configProvider.updateConfig(
+                                      config.copyWith(
+                                          sortBy: SortBy.lastModificationDate,
+                                          sortOrder: sortOrder ==
+                                                      SortOrder.asc ||
+                                                  sortBy !=
+                                                      SortBy
+                                                          .lastModificationDate
+                                              ? SortOrder.desc
+                                              : SortOrder.asc),
+                                    ),
+                                  ),
+                                ]),
+                      ],
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
                   ),
-                ],
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30.0),
-                borderSide: const BorderSide(color: Colors.grey),
+                ),
               ),
             ),
-          ),
+          ],
         ),
-        Expanded(
-          child: ListView.builder(
-            key: PageStorageKey(searchText.value),
-            itemCount: sortedContents.value.length,
-            itemBuilder: (context, index) {
-              final content = sortedContents.value[index];
-              return ListTile(
-                title: Text(content.name),
-                subtitle: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    if (content.region != null)
-                      Badge(
-                        label: Text(content.region!.toUpperCase()),
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                      ),
-                    const SizedBox(width: 4),
-                    Badge(
-                      label: Text(content.titleID.toUpperCase()),
-                      backgroundColor: Colors.blueGrey,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                    ),
-                    const SizedBox(width: 4),
-                    if (content.pkgDirectLink != null)
-                      Badge(
-                        label: content.fileSize == null
-                            ? Text(t.unknown_size)
-                            : Text('${fileSizeConv(content.fileSize)}'),
-                        backgroundColor: Colors.blueGrey,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                      ),
-                  ],
+        forceMaterialTransparency: true,
+      ),
+      body: ListView.builder(
+        key: PageStorageKey(searchText.value),
+        itemCount: sortedContents.value.length,
+        itemBuilder: (context, index) {
+          final content = sortedContents.value[index];
+          return ListTile(
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: CachedNetworkImage(
+                  imageUrl: getContentIcon(content, size: 96)!,
+                  fit: BoxFit.contain,
+                  placeholder: (context, url) => const SizedBox(
+                    child: Center(child: Icon(Icons.gamepad)),
+                  ),
+                  errorWidget: (context, url, error) =>
+                      const Icon(Icons.gamepad),
                 ),
-                onTap: () {
-                  focusNode.unfocus();
-                  Navigator.pushNamed(context, '/content',
-                      arguments: ContentPageProps(content: content));
-                },
-              );
+              ),
+            ),
+            title: Text(content.name),
+            subtitle: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                if (content.region != null)
+                  Badge(
+                    label: Text(content.region!.toUpperCase()),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  ),
+                const SizedBox(width: 4),
+                Badge(
+                  label: Text(content.titleID.toUpperCase()),
+                  backgroundColor: Colors.blueGrey,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                ),
+                // const SizedBox(width: 4),
+                // Badge(
+                //   label: Row(children: [
+                //     Icon(
+                //       content.pkgDirectLink == null
+                //           ? Icons.link_off
+                //           : Icons.link,
+                //       size: 16,
+                //       color: Theme.of(context).colorScheme.surface,
+                //     ),
+                //     const SizedBox(width: 4),
+                //     Icon(
+                //       content.zRIF == null ? Icons.key_off : Icons.key,
+                //       size: 14,
+                //       color: Theme.of(context).colorScheme.surface,
+                //     ),
+                //   ]),
+                //   backgroundColor: Colors.blueGrey,
+                //   padding:
+                //       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                // ),
+                const SizedBox(width: 4),
+                if (content.fileSize != null && content.fileSize != 0)
+                  Badge(
+                    label: Text('${fileSizeConv(content.fileSize)}'),
+                    backgroundColor: Colors.blueGrey,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  ),
+              ],
+            ),
+            onTap: () {
+              focusNode.unfocus();
+              Navigator.pushNamed(context, '/content',
+                  arguments: ContentPageProps(content: content));
             },
-          ),
-        )
-      ],
+          );
+        },
+      ),
     );
   }
 }

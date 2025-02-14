@@ -9,7 +9,7 @@ import 'package:vita_dl/models/download_item.dart';
 import 'package:vita_dl/pages/content_list.dart';
 import 'package:vita_dl/pages/content_page/content_page_info.dart';
 import 'package:vita_dl/provider/config_provider.dart';
-import 'package:vita_dl/utils/get_contents_by_title_id.dart';
+import 'package:vita_dl/hooks/use_contents.dart';
 import 'package:vita_dl/utils/get_localizations.dart';
 
 class ITab {
@@ -57,11 +57,7 @@ class ContentPage extends HookWidget {
 
     final downloads = useListenable(downloadBox.listenable()).value;
 
-    final getContents = useMemoized(() async => content.type != ContentType.app
-        ? [content]
-        : await getContentsByTitleID(content.titleID, hmacKey));
-
-    List<Content> contents = useFuture(getContents).data ?? [];
+    List<Content> contents = useContents(content, hmacKey);
 
     final canDownloadContents = useMemoized(
         () => contents.where((item) => item.pkgDirectLink != null).toList(),
@@ -104,6 +100,7 @@ class ContentPage extends HookWidget {
         title: t.info,
         child: ContentPageInfo(
           content: content,
+          contents: contents,
           downloadContents: downloadContents,
         ),
       ),
@@ -115,13 +112,11 @@ class ContentPage extends HookWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${content.name} [${content.titleID}]'),
-        bottom: TabBar(
+        title: TabBar(
             controller: tabController,
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             dividerColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
             tabs: tabs.map((e) => Tab(text: e.title)).toList()),
       ),
       body: TabBarView(

@@ -30,94 +30,105 @@ class Downloads extends HookWidget {
             .toList(),
         [downloads]);
 
-    return ListView.builder(
-      itemCount: apps.length,
-      itemBuilder: (context, index) {
-        final content = apps[index];
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(t.download),
+        forceMaterialTransparency: true,
+      ),
+      body: ListView.builder(
+        itemCount: apps.length,
+        itemBuilder: (context, index) {
+          final content = apps[index];
 
-        final currentDownloads = downloads
-            .where((item) => item.content.titleID == content.titleID)
-            .toList();
+          final currentDownloads = downloads
+              .where((item) => item.content.titleID == content.titleID)
+              .toList();
 
-        final contents = currentDownloads.map((item) => item.content).toList();
+          final contents =
+              currentDownloads.map((item) => item.content).toList();
 
-        final currentCompletedDownloads = currentDownloads
-            .where((item) => item.extractStatus == ExtractStatus.completed);
+          final currentCompletedDownloads = currentDownloads
+              .where((item) => item.extractStatus == ExtractStatus.completed);
 
-        bool isDownloading = currentDownloads
-            .any((item) => item.downloadStatus == DownloadStatus.downloading);
+          bool isDownloading = currentDownloads
+              .any((item) => item.downloadStatus == DownloadStatus.downloading);
 
-        bool isExtracting = currentDownloads
-            .any((item) => item.extractStatus == ExtractStatus.extracting);
+          bool isExtracting = currentDownloads
+              .any((item) => item.extractStatus == ExtractStatus.extracting);
 
-        final incompletedDownloads = currentDownloads
-            .where((item) => item.downloadStatus != DownloadStatus.completed)
-            .toList();
+          final incompletedDownloads = currentDownloads
+              .where((item) => item.downloadStatus != DownloadStatus.completed)
+              .toList();
 
-        final allDownloadSize = currentDownloads
-            .map((item) => item.size)
-            .reduce((value, element) => value + element);
+          final allDownloadSize = currentDownloads
+              .map((item) => item.size)
+              .reduce((value, element) => value + element);
 
-        final currentDownloadSize = currentDownloads
-            .map((item) => item.size * item.progress)
-            .reduce((value, element) => value + element)
-            .toInt();
+          final currentDownloadSize = currentDownloads
+              .map((item) => item.size * item.progress)
+              .reduce((value, element) => value + element)
+              .toInt();
 
-        return ListTile(
-          title: Text(content.name),
-          subtitle: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const SizedBox(width: 4),
-              Badge(
-                label: Text(incompletedDownloads.isEmpty
-                    ? '${fileSizeConv(currentDownloadSize)}'
-                    : '${fileSizeConv(currentDownloadSize)} / ${fileSizeConv(allDownloadSize)}'),
-                backgroundColor: Colors.blueGrey,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              ),
-              const SizedBox(width: 4),
-              Badge(
-                label: Text(currentCompletedDownloads.length ==
-                        currentDownloads.length
-                    ? '${currentCompletedDownloads.length}'
-                    : '${currentCompletedDownloads.length} / ${currentDownloads.length}'),
-                backgroundColor: Colors.blueGrey,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              ),
-              if (isExtracting && incompletedDownloads.isEmpty)
+          return ListTile(
+            title: Text(content.name),
+            subtitle: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
                 const SizedBox(width: 4),
-              if (isExtracting && incompletedDownloads.isEmpty)
                 Badge(
-                  label: Text(t.extracting),
+                  label: Text(incompletedDownloads.isEmpty
+                      ? '${fileSizeConv(currentDownloadSize)}'
+                      : '${fileSizeConv(currentDownloadSize)} / ${fileSizeConv(allDownloadSize)}'),
                   backgroundColor: Colors.blueGrey,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 ),
-            ],
-          ),
-          trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-            if (incompletedDownloads.isNotEmpty)
-              isDownloading
-                  ? IconButton(
-                      tooltip: isExtracting ? t.extracting : t.pause,
-                      icon: const Icon(Icons.pause),
-                      onPressed: () => downloader.pause(contents))
-                  : IconButton(
-                      tooltip: t.download,
-                      icon: const Icon(Icons.download),
-                      onPressed: () => downloader.add(
-                          incompletedDownloads.map((e) => e.content).toList())),
-            IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () => downloader.remove(contents)),
-          ]),
-          onTap: () {
-            Navigator.pushNamed(context, '/content',
-                arguments: ContentPageProps(content: content, initialIndex: 1));
-          },
-        );
-      },
+                const SizedBox(width: 4),
+                Badge(
+                  label: Text(currentCompletedDownloads.length ==
+                          currentDownloads.length
+                      ? '${currentCompletedDownloads.length}'
+                      : '${currentCompletedDownloads.length} / ${currentDownloads.length}'),
+                  backgroundColor: Colors.blueGrey,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                ),
+                if (isExtracting && incompletedDownloads.isEmpty)
+                  const SizedBox(width: 4),
+                if (isExtracting && incompletedDownloads.isEmpty)
+                  Badge(
+                    label: Text(t.extracting),
+                    backgroundColor: Colors.blueGrey,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  ),
+              ],
+            ),
+            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+              if (incompletedDownloads.isNotEmpty)
+                isDownloading
+                    ? IconButton(
+                        tooltip: isExtracting ? t.extracting : t.pause,
+                        icon: const Icon(Icons.pause),
+                        onPressed: () => downloader.pause(contents))
+                    : IconButton(
+                        tooltip: t.download,
+                        icon: const Icon(Icons.download),
+                        onPressed: () => downloader.add(incompletedDownloads
+                            .map((e) => e.content)
+                            .toList())),
+              IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () => downloader.remove(contents)),
+            ]),
+            onTap: () {
+              Navigator.pushNamed(context, '/content',
+                  arguments:
+                      ContentPageProps(content: content, initialIndex: 1));
+            },
+          );
+        },
+      ),
     );
   }
 }

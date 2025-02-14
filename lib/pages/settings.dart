@@ -118,6 +118,7 @@ class Settings extends HookWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(t.settings),
+        forceMaterialTransparency: true,
       ),
       body: SingleChildScrollView(
         child: Column(
