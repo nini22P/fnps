@@ -7,18 +7,33 @@ import 'package:fnps/utils/content_info.dart';
 List<Content> useContents(Content content, String? hmacKey) {
   if (content.category != Category.game) return [content];
 
-  final psvBox = useMemoized(() => Hive.box<Content>(psvBoxName));
-  final pspBox = useMemoized(() => Hive.box<Content>(pspBoxName));
+  final psvBox = Hive.box<Content>(psvBoxName);
+  final pspBox = Hive.box<Content>(pspBoxName);
+  final psmBox = Hive.box<Content>(psmBoxName);
+  final psxBox = Hive.box<Content>(psxBoxName);
 
-  final contents = useMemoized(() => [...psvBox.values, ...pspBox.values]);
+  final contents = useMemoized(() => [
+        ...psvBox.values,
+        ...pspBox.values,
+        ...psmBox.values,
+        ...psxBox.values,
+      ]);
 
   final titleID = useMemoized(() => content.titleID);
+  // final List<Content> updates = useMemoized(() => contents
+  //     .where((content) =>
+  //         content.titleID == titleID && content.category == Category.update)
+  //     .toList());
+  // final List<Content> sortedUpdates =
+  //     [...updates].sorted((a, b) => b.appVersion!.compareTo(a.appVersion!));
+  // final Content? latestUpdate =
+  //     sortedUpdates.isEmpty ? null : sortedUpdates.first;
   final update = useState<Content?>(null);
 
   useEffect(() {
     () async {
       if (hmacKey != null && hmacKey.isNotEmpty) {
-        update.value = await getUpdate(content, hmacKey);
+        update.value = await getUpdate(content, hmacKey) ?? update.value;
       }
     }();
     return null;

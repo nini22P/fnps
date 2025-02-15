@@ -1,4 +1,4 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:fnps/utils/env.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:fnps/models/content.dart';
 
@@ -19,15 +19,10 @@ enum SortOrder {
 @freezed
 class Config with _$Config {
   const factory Config({
-    required Source psvGames,
-    required Source psvDLCs,
-    required Source psvThemes,
-    required Source psvDEMOs,
-    required Source pspGames,
-    required Source pspDLCs,
+    required List<Source> sources,
     required List<Platform> platforms,
     required List<Category> categories,
-    required List<String> regions,
+    required List<Region> regions,
     String? hmacKey,
     @Default(SortBy.name) SortBy sortBy,
     @Default(SortOrder.asc) SortOrder sortOrder,
@@ -36,27 +31,67 @@ class Config with _$Config {
   factory Config.fromJson(Map<String, dynamic> json) => _$ConfigFromJson(json);
 
   static final initConfig = Config(
-    psvGames: const Source(type: SourceType.local),
-    psvDLCs: const Source(type: SourceType.local),
-    psvThemes: const Source(type: SourceType.local),
-    psvDEMOs: const Source(type: SourceType.local),
-    pspGames: const Source(type: SourceType.local),
-    pspDLCs: const Source(type: SourceType.local),
+    sources: [
+      Source(
+        platform: Platform.psv,
+        category: Category.game,
+        url: Env().psvGamesUrl,
+      ),
+      Source(
+        platform: Platform.psv,
+        category: Category.dlc,
+        url: Env().psvDLCsUrl,
+      ),
+      Source(
+        platform: Platform.psv,
+        category: Category.theme,
+        url: Env().psvThemesUrl,
+      ),
+      Source(
+        platform: Platform.psv,
+        category: Category.update,
+        url: Env().psvUpdatesUrl,
+      ),
+      Source(
+        platform: Platform.psv,
+        category: Category.demo,
+        url: Env().psvDemosUrl,
+      ),
+      Source(
+        platform: Platform.psp,
+        category: Category.game,
+        url: Env().pspGamesUrl,
+      ),
+      Source(
+        platform: Platform.psp,
+        category: Category.dlc,
+        url: Env().pspDLCsUrl,
+      ),
+      Source(
+        platform: Platform.psp,
+        category: Category.theme,
+        url: Env().pspThemesUrl,
+      ),
+      Source(
+        platform: Platform.psp,
+        category: Category.update,
+        url: Env().pspUpdatesUrl,
+      ),
+    ],
     platforms: [Platform.psv, Platform.psp],
     categories: [Category.game, Category.dlc, Category.theme, Category.demo],
-    regions: ['JP', 'ASIA', 'US', 'EU', 'INT', 'UNKNOWN'],
-    hmacKey: dotenv.env['HMAC_KEY'],
+    regions: Region.values,
+    hmacKey: Env().hmacKey,
     sortBy: SortBy.name,
     sortOrder: SortOrder.asc,
   );
 }
 
-enum SourceType { remote, local }
-
 @freezed
 class Source with _$Source {
   const factory Source({
-    required SourceType type,
+    required Platform platform,
+    required Category category,
     DateTime? updateTime,
     String? url,
   }) = _Source;

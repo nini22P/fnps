@@ -1,8 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:collection/collection.dart';
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fnps/models/download_item.dart';
+import 'package:fnps/pages/show_source_dialog.dart';
+import 'package:fnps/utils/logger.dart';
+import 'package:fnps/widgets/custom_badge.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:saf_stream/saf_stream.dart';
@@ -18,6 +24,26 @@ import 'package:fnps/utils/request_storage_permission.dart';
 import 'package:fnps/utils/tsv_to_contents.dart';
 import 'package:fnps/utils/uri.dart';
 
+enum SyncStatus {
+  queue,
+  syncing,
+  done,
+}
+
+class SourceTile {
+  final String title;
+  final Platform platform;
+  final Category category;
+  final SyncStatus status;
+
+  SourceTile({
+    required this.title,
+    required this.platform,
+    required this.category,
+    required this.status,
+  });
+}
+
 class Settings extends HookWidget {
   const Settings({super.key});
 
@@ -27,91 +53,251 @@ class Settings extends HookWidget {
     final configProvider = Provider.of<ConfigProvider>(context);
     Config config = configProvider.config;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     final psvBox = Hive.box<Content>(psvBoxName);
     final pspBox = Hive.box<Content>(pspBoxName);
+    final psmBox = Hive.box<Content>(psmBoxName);
+    final psxBox = Hive.box<Content>(psxBoxName);
+    final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
 
     final TextEditingController hmacKeyController =
         TextEditingController(text: config.hmacKey);
 
-    Future<void> updateSource(
-      Platform platform,
-      Category category,
-      SourceType sourceType,
-      String url,
-      DateTime updateTime,
-    ) async {
+    final sourceTileData = useState([
+      SourceTile(
+        title: 'PSV ${t.game_list}',
+        platform: Platform.psv,
+        category: Category.game,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PSV ${t.dlc_list}',
+        platform: Platform.psv,
+        category: Category.dlc,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PSV ${t.theme_list}',
+        platform: Platform.psv,
+        category: Category.theme,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PSV ${t.update_list}',
+        platform: Platform.psv,
+        category: Category.update,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PSV ${t.demo_list}',
+        platform: Platform.psv,
+        category: Category.demo,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PSP ${t.game_list}',
+        platform: Platform.psp,
+        category: Category.game,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PSP ${t.dlc_list}',
+        platform: Platform.psp,
+        category: Category.dlc,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PSP ${t.theme_list}',
+        platform: Platform.psp,
+        category: Category.theme,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PSP ${t.update_list}',
+        platform: Platform.psp,
+        category: Category.update,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PSM ${t.game_list}',
+        platform: Platform.psm,
+        category: Category.game,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PSX ${t.game_list}',
+        platform: Platform.psx,
+        category: Category.game,
+        status: SyncStatus.done,
+      ),
+    ]);
+
+    final isSync = useMemoized(
+        () => sourceTileData.value.any((tile) =>
+            tile.status == SyncStatus.syncing ||
+            tile.status == SyncStatus.queue),
+        [sourceTileData.value]);
+
+    Future<void> updateContents({
+      required List<Content> contents,
+      required Platform platform,
+      required Category category,
+      String? url,
+    }) async {
       switch (platform) {
         case Platform.psv:
-          switch (category) {
-            case Category.game:
-              configProvider.updateConfig(configProvider.config.copyWith(
-                  psvGames: Source(
-                type: sourceType,
-                updateTime: updateTime,
-                url: url,
-              )));
-              break;
-            case Category.dlc:
-              configProvider.updateConfig(configProvider.config.copyWith(
-                  psvDLCs: Source(
-                type: sourceType,
-                updateTime: updateTime,
-                url: url,
-              )));
-              break;
-            case Category.theme:
-              configProvider.updateConfig(configProvider.config.copyWith(
-                  psvThemes: Source(
-                type: sourceType,
-                updateTime: updateTime,
-                url: url,
-              )));
-              break;
-            case Category.update:
-              break;
-            case Category.demo:
-              configProvider.updateConfig(configProvider.config.copyWith(
-                  psvDEMOs: Source(
-                type: sourceType,
-                updateTime: updateTime,
-                url: url,
-              )));
-              break;
-          }
+          final values = [...psvBox.values]
+              .where((content) => content.category != category);
+          await psvBox.clear();
+          await psvBox.addAll([...values, ...contents]);
           break;
         case Platform.psp:
-          switch (category) {
-            case Category.game:
-              configProvider.updateConfig(configProvider.config.copyWith(
-                  pspGames: Source(
-                type: sourceType,
-                updateTime: updateTime,
-                url: url,
-              )));
-              break;
-            case Category.dlc:
-              configProvider.updateConfig(configProvider.config.copyWith(
-                  pspDLCs: Source(
-                type: sourceType,
-                updateTime: updateTime,
-                url: url,
-              )));
-              break;
-            case Category.theme:
-            case Category.update:
-            case Category.demo:
-              break;
-          }
+          final values = [...pspBox.values]
+              .where((content) => content.category != category);
+          await pspBox.clear();
+          await pspBox.addAll([...values, ...contents]);
+          break;
+        case Platform.psm:
+          final values = [...psmBox.values]
+              .where((content) => content.category != category);
+          await psmBox.clear();
+          await psmBox.addAll([...values, ...contents]);
+          break;
+        case Platform.psx:
+          final values = [...psxBox.values]
+              .where((content) => content.category != category);
+          await psxBox.clear();
+          await psxBox.addAll([...values, ...contents]);
           break;
         default:
           break;
       }
+
+      final filteredSources = [...config.sources]
+          .whereNot((source) =>
+              source.platform == platform && source.category == category)
+          .toList();
+      configProvider.updateConfig(configProvider.config.copyWith(
+        sources: [
+          ...filteredSources,
+          Source(
+            platform: platform,
+            category: category,
+            updateTime: DateTime.now().toUtc(),
+            url: url,
+          )
+        ],
+      ));
     }
 
-    Future<void> updateHmacKey(String hmacKey) async => configProvider
-        .updateConfig(configProvider.config.copyWith(hmacKey: hmacKey));
+    void updateSourceTileData(SourceTile tile) {
+      final updatedTiles = sourceTileData.value
+          .where((item) => !(item.platform == tile.platform &&
+              item.category == tile.category))
+          .toList();
 
-    Future<void> pickTsvFile(Platform platform, Category category) async {
+      int insertIndex = sourceTileData.value.indexWhere((item) =>
+          item.platform == tile.platform && item.category == tile.category);
+
+      if (insertIndex == -1) {
+        updatedTiles.add(tile);
+      } else {
+        updatedTiles.insert(insertIndex, tile);
+      }
+
+      sourceTileData.value = updatedTiles;
+    }
+
+    Source? getSource(Platform platform, Category category) =>
+        config.sources.firstWhereOrNull((source) =>
+            source.platform == platform && source.category == category);
+
+    Future<void> syncSource(SourceTile tile, String url) async {
+      String? content;
+      logger('Downloading ${tile.platform.name} ${tile.category.name}...');
+      updateSourceTileData(SourceTile(
+        title: tile.title,
+        platform: tile.platform,
+        category: tile.category,
+        status: SyncStatus.syncing,
+      ));
+      try {
+        Dio dio = Dio();
+
+        Response response = await dio.get(
+          url,
+          options: Options(responseType: ResponseType.bytes),
+        );
+
+        if (response.statusCode == 200) {
+          content = utf8.decode(response.data);
+        } else {
+          updateSourceTileData(SourceTile(
+            title: tile.title,
+            platform: tile.platform,
+            category: tile.category,
+            status: SyncStatus.done,
+          ));
+          logger('Download failed: ${response.statusCode}',
+              error: response.statusMessage);
+        }
+      } catch (e) {
+        updateSourceTileData(SourceTile(
+          title: tile.title,
+          platform: tile.platform,
+          category: tile.category,
+          status: SyncStatus.done,
+        ));
+        logger('Download failed:', error: e);
+      }
+
+      if (content != null) {
+        logger('Parsing ${tile.platform.name} ${tile.category.name}...');
+        final contents =
+            await tsvToContents(content, tile.platform, tile.category);
+        await updateContents(
+          contents: contents,
+          platform: tile.platform,
+          category: tile.category,
+          url: url,
+        );
+
+        updateSourceTileData(SourceTile(
+          title: tile.title,
+          platform: tile.platform,
+          category: tile.category,
+          status: SyncStatus.done,
+        ));
+        logger('Synced ${tile.platform.name} ${tile.category.name}');
+      }
+    }
+
+    Future<void> syncAllSources() async {
+      logger('Syncing all sources...');
+      sourceTileData.value = sourceTileData.value.map((tile) {
+        final source = getSource(tile.platform, tile.category);
+        if (source != null && source.url != null) {
+          return SourceTile(
+            title: tile.title,
+            platform: tile.platform,
+            category: tile.category,
+            status: SyncStatus.queue,
+          );
+        } else {
+          return tile;
+        }
+      }).toList();
+      for (var tile in sourceTileData.value) {
+        final source = getSource(tile.platform, tile.category);
+        if (source != null && source.url != null) {
+          await syncSource(tile, source.url!);
+        }
+      }
+    }
+
+    Future<void> selectLocalFile(Platform platform, Category category) async {
       String? content;
 
       if (isAndroid) {
@@ -138,30 +324,94 @@ class Settings extends HookWidget {
 
       if (content != null) {
         final contents = await tsvToContents(content, platform, category);
-        switch (platform) {
-          case Platform.psv:
-            final values = [...psvBox.values]
-                .where((content) => content.category != category);
-            await psvBox.clear();
-            await psvBox.addAll([...values, ...contents]);
-            break;
-          case Platform.psp:
-            final values = [...pspBox.values]
-                .where((content) => content.category != category);
-            await pspBox.clear();
-            await pspBox.addAll([...values, ...contents]);
-            break;
-          default:
-            break;
-        }
-        await updateSource(
-            platform, category, SourceType.local, '', DateTime.now().toUtc());
+        await updateContents(
+          contents: contents,
+          platform: platform,
+          category: category,
+        );
       }
     }
+
+    ListTile buildSourceTile(SourceTile tile) {
+      final source = getSource(tile.platform, tile.category);
+      final updateTime = source?.updateTime
+          ?.toLocal()
+          .toIso8601String()
+          .replaceAll('T', ' ')
+          .split('.')
+          .first;
+      final url = source?.url;
+      final isSyncing =
+          tile.status == SyncStatus.syncing || tile.status == SyncStatus.queue;
+      return ListTile(
+        title: Text(tile.title),
+        subtitle: Row(children: [
+          CustomBadge(text: url == null ? t.local : t.remote),
+          if (updateTime == null && !isSyncing) const SizedBox(width: 4),
+          if (updateTime == null && !isSyncing)
+            CustomBadge(text: t.not_syncing),
+          if (isSyncing) const SizedBox(width: 4),
+          if (isSyncing)
+            CustomBadge(
+                text:
+                    tile.status == SyncStatus.syncing ? t.syncing : t.queuing),
+          const SizedBox(width: 6),
+          if (!isMobile && url != null)
+            Expanded(
+                child: Text(
+              url,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )),
+          if (!isMobile && url != null) const SizedBox(width: 16),
+          if (updateTime != null) Text(updateTime),
+        ]),
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (url != null)
+            IconButton(
+              tooltip: t.sync,
+              icon: const Icon(Icons.sync),
+              onPressed: isSyncing ? null : () => syncSource(tile, url),
+            ),
+        ]),
+        onTap: isSyncing || source == null
+            ? null
+            : () async {
+                final result =
+                    await showSourceDialog(context, source, tile.title);
+                if (result == null) return;
+                if (result.url == null) {
+                  await selectLocalFile(tile.platform, tile.category);
+                } else {
+                  await syncSource(tile, result.url!);
+                }
+              },
+      );
+    }
+
+    tilesBuilder() {
+      List<Widget> result = [];
+      for (var tile in sourceTileData.value) {
+        if ((tile.platform == Platform.psp || tile.platform == Platform.psm) &&
+            tile.category == Category.game) {
+          result.add(const Divider());
+        }
+        result.add(buildSourceTile(tile));
+      }
+      return result;
+    }
+
+    final List<Widget> tiles = tilesBuilder();
+
+    Future<void> updateHmacKey(String hmacKey) async => configProvider
+        .updateConfig(configProvider.config.copyWith(hmacKey: hmacKey));
 
     Future<void> resetConfig() async {
       await psvBox.clear();
       await pspBox.clear();
+      await psmBox.clear();
+      await psxBox.clear();
+      await downloadBox.clear();
       await configProvider.resetConfig();
     }
 
@@ -174,78 +424,11 @@ class Settings extends HookWidget {
         child: Column(
           children: [
             ListTile(
-              title: Text(t.update_psv_game_list),
-              subtitle: config.psvGames.updateTime == null
-                  ? const Text('')
-                  : Text(config.psvGames.updateTime!
-                      .toLocal()
-                      .toIso8601String()
-                      .replaceAll('T', ' ')
-                      .split('.')
-                      .first),
-              onTap: () => pickTsvFile(Platform.psv, Category.game),
-            ),
-            ListTile(
-              title: Text(t.update_psv_dlc_list),
-              subtitle: config.psvDLCs.updateTime == null
-                  ? const Text('')
-                  : Text(config.psvDLCs.updateTime!
-                      .toLocal()
-                      .toIso8601String()
-                      .replaceAll('T', ' ')
-                      .split('.')
-                      .first),
-              onTap: () => pickTsvFile(Platform.psv, Category.dlc),
-            ),
-            ListTile(
-              title: Text(t.update_psv_theme_list),
-              subtitle: config.psvThemes.updateTime == null
-                  ? const Text('')
-                  : Text(config.psvThemes.updateTime!
-                      .toLocal()
-                      .toIso8601String()
-                      .replaceAll('T', ' ')
-                      .split('.')
-                      .first),
-              onTap: () => pickTsvFile(Platform.psv, Category.theme),
-            ),
-            ListTile(
-              title: Text(t.update_psv_demo_list),
-              subtitle: config.psvDEMOs.updateTime == null
-                  ? const Text('')
-                  : Text(config.psvDEMOs.updateTime!
-                      .toLocal()
-                      .toIso8601String()
-                      .replaceAll('T', ' ')
-                      .split('.')
-                      .first),
-              onTap: () => pickTsvFile(Platform.psv, Category.demo),
+              title: Text(t.sync_all_remote_lists),
+              onTap: isSync ? null : syncAllSources,
             ),
             const Divider(),
-            ListTile(
-              title: Text(t.update_psp_game_list),
-              subtitle: config.pspGames.updateTime == null
-                  ? const Text('')
-                  : Text(config.pspGames.updateTime!
-                      .toLocal()
-                      .toIso8601String()
-                      .replaceAll('T', ' ')
-                      .split('.')
-                      .first),
-              onTap: () => pickTsvFile(Platform.psp, Category.game),
-            ),
-            ListTile(
-              title: Text(t.update_psp_dlc_list),
-              subtitle: config.pspDLCs.updateTime == null
-                  ? const Text('')
-                  : Text(config.pspDLCs.updateTime!
-                      .toLocal()
-                      .toIso8601String()
-                      .replaceAll('T', ' ')
-                      .split('.')
-                      .first),
-              onTap: () => pickTsvFile(Platform.psp, Category.dlc),
-            ),
+            ...tiles,
             const Divider(),
             ListTile(
               title: Text(t.hmac_key),

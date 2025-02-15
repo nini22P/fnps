@@ -31,6 +31,8 @@ Future<void> main() async {
   await Hive.openBox<DownloadItem>(downloadBoxName);
   await Hive.openBox<Content>(psvBoxName);
   await Hive.openBox<Content>(pspBoxName);
+  await Hive.openBox<Content>(psmBoxName);
+  await Hive.openBox<Content>(psxBoxName);
 
   await Downloader.instance.init();
 

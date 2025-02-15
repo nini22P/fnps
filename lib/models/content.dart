@@ -42,6 +42,22 @@ enum Category {
   demo,
 }
 
+@HiveType(typeId: regionTypeId)
+enum Region {
+  @HiveField(0)
+  asia,
+  @HiveField(1)
+  jp,
+  @HiveField(2)
+  us,
+  @HiveField(3)
+  eu,
+  @HiveField(4)
+  int,
+  @HiveField(5)
+  unknown,
+}
+
 @freezed
 @HiveType(typeId: contentTypeId)
 abstract class Content extends HiveObject with _$Content {
@@ -52,7 +68,7 @@ abstract class Content extends HiveObject with _$Content {
     @HiveField(1) required Category category,
     @HiveField(2) required String titleID,
     @HiveField(3) required String name,
-    @HiveField(4) String? region,
+    @HiveField(4) Region? region,
     @HiveField(5) String? pkgDirectLink,
     @HiveField(6) String? zRIF,
     @HiveField(7) String? rap,
@@ -86,11 +102,20 @@ abstract class Content extends HiveObject with _$Content {
       }
     }
 
+    Region checkRegion(String? text) {
+      if (text == 'ASIA') return Region.asia;
+      if (text == 'JP') return Region.jp;
+      if (text == 'US') return Region.us;
+      if (text == 'EU') return Region.eu;
+      if (text == 'INT') return Region.int;
+      return Region.unknown;
+    }
+
     return Content(
       platform: checkPlatform(map['Type']),
       category: category,
       titleID: map['Title ID'],
-      region: map['Region'],
+      region: checkRegion(map['Region']),
       name: map['Name'],
       pkgDirectLink: checkNull(map['PKG direct link']),
       zRIF: checkNull(map['zRIF']),

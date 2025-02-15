@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fnps/widgets/custom_badge.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:fnps/downloader/downloader.dart';
 import 'package:fnps/hive/hive_box_names.dart';
@@ -19,17 +20,24 @@ class Downloads extends HookWidget {
 
     final psvBox = Hive.box<Content>(psvBoxName);
     final pspBox = Hive.box<Content>(pspBoxName);
+    final psmBox = Hive.box<Content>(psmBoxName);
+    final psxBox = Hive.box<Content>(psxBoxName);
     final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
 
     final downloads =
         useListenable(downloadBox.listenable()).value.values.toList();
 
     final apps = useMemoized(
-        () => [...psvBox.values, ...pspBox.values]
-            .where((content) => downloads.any((download) =>
-                download.content == content &&
-                content.category == Category.game))
-            .toList(),
+        () => [
+              ...psvBox.values,
+              ...pspBox.values,
+              ...psmBox.values,
+              ...psxBox.values,
+            ]
+                .where((content) => downloads.any((download) =>
+                    download.content == content &&
+                    content.category == Category.game))
+                .toList(),
         [downloads]);
 
     return Scaffold(
@@ -77,33 +85,20 @@ class Downloads extends HookWidget {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 const SizedBox(width: 4),
-                Badge(
-                  label: Text(incompletedDownloads.isEmpty
-                      ? '${fileSizeConv(currentDownloadSize)}'
-                      : '${fileSizeConv(currentDownloadSize)} / ${fileSizeConv(allDownloadSize)}'),
-                  backgroundColor: Colors.blueGrey,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                ),
+                CustomBadge(
+                    text: incompletedDownloads.isEmpty
+                        ? '${fileSizeConv(currentDownloadSize)}'
+                        : '${fileSizeConv(currentDownloadSize)} / ${fileSizeConv(allDownloadSize)}'),
                 const SizedBox(width: 4),
-                Badge(
-                  label: Text(currentCompletedDownloads.length ==
-                          currentDownloads.length
-                      ? '${currentCompletedDownloads.length}'
-                      : '${currentCompletedDownloads.length} / ${currentDownloads.length}'),
-                  backgroundColor: Colors.blueGrey,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                ),
+                CustomBadge(
+                    text: currentCompletedDownloads.length ==
+                            currentDownloads.length
+                        ? '${currentCompletedDownloads.length}'
+                        : '${currentCompletedDownloads.length} / ${currentDownloads.length}'),
                 if (isExtracting && incompletedDownloads.isEmpty)
                   const SizedBox(width: 4),
                 if (isExtracting && incompletedDownloads.isEmpty)
-                  Badge(
-                    label: Text(t.extracting),
-                    backgroundColor: Colors.blueGrey,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  ),
+                  CustomBadge(text: t.extracting),
               ],
             ),
             trailing: Row(mainAxisSize: MainAxisSize.min, children: [

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fnps/widgets/custom_badge.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:fnps/hive/hive_box_names.dart';
@@ -32,10 +33,14 @@ class Contents extends HookWidget {
 
     final psvBox = Hive.box<Content>(psvBoxName);
     final pspBox = Hive.box<Content>(pspBoxName);
+    final psmBox = Hive.box<Content>(psmBoxName);
+    final psxBox = Hive.box<Content>(psxBoxName);
 
     final contents = useMemoized(() => [
           ...psvBox.values,
           ...pspBox.values,
+          ...psmBox.values,
+          ...psxBox.values
         ].where((content) => categories.contains(content.category)).toList());
 
     final filteredContents = useState(<Content>[]);
@@ -123,11 +128,9 @@ class Contents extends HookWidget {
                             onOpened: () => focusNode.unfocus(),
                             itemBuilder: (BuildContext context) => [
                                   ...regions.map(
-                                    (String region) =>
-                                        CheckedPopupMenuItem<String>(
-                                      value: region,
+                                    (Region region) => CheckedPopupMenuItem(
                                       checked: selectedRegions.contains(region),
-                                      child: Text(region),
+                                      child: Text(region.name),
                                       onTap: () {
                                         focusNode.unfocus();
                                         if (selectedRegions.contains(region)) {
@@ -250,59 +253,18 @@ class Contents extends HookWidget {
               ),
             ),
             title: Text(content.name),
-            subtitle: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
+            subtitle: Wrap(
+              // mainAxisAlignment: MainAxisAlignment.start,
+              spacing: 4,
+              runSpacing: 4,
               children: [
                 if (content.region != null)
-                  Badge(
-                    label: Text(content.region!.toUpperCase()),
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  ),
-                const SizedBox(width: 4),
-                Badge(
-                  label: Text(content.platform.name.toUpperCase()),
-                  backgroundColor: Colors.blueGrey,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                ),
-                const SizedBox(width: 4),
-                Badge(
-                  label: Text(content.titleID.toUpperCase()),
-                  backgroundColor: Colors.blueGrey,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                ),
-                // const SizedBox(width: 4),
-                // Badge(
-                //   label: Row(children: [
-                //     Icon(
-                //       content.pkgDirectLink == null
-                //           ? Icons.link_off
-                //           : Icons.link,
-                //       size: 16,
-                //       color: Theme.of(context).colorScheme.surface,
-                //     ),
-                //     const SizedBox(width: 4),
-                //     Icon(
-                //       content.zRIF == null ? Icons.key_off : Icons.key,
-                //       size: 14,
-                //       color: Theme.of(context).colorScheme.surface,
-                //     ),
-                //   ]),
-                //   backgroundColor: Colors.blueGrey,
-                //   padding:
-                //       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                // ),
-                const SizedBox(width: 4),
+                  CustomBadge(text: content.region!.name, primary: true),
+                CustomBadge(text: content.platform.name),
+                CustomBadge(text: content.category.name),
+                CustomBadge(text: content.titleID),
                 if (content.fileSize != null && content.fileSize != 0)
-                  Badge(
-                    label: Text('${fileSizeConv(content.fileSize)}'),
-                    backgroundColor: Colors.blueGrey,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  ),
+                  CustomBadge(text: fileSizeConv(content.fileSize)!),
               ],
             ),
             onTap: () {

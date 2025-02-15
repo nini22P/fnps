@@ -105,7 +105,7 @@ class ContentPage extends HookWidget {
         ),
       ),
       ITab(
-        title: t.contents,
+        title: t.download_contents,
         child: ContentList(contents: contents),
       ),
     ];
@@ -133,8 +133,8 @@ class ContentPage extends HookWidget {
                       ? t.download
                       : t.download_all_downloadable_content
                   : currentDownloads.length == canDownloadContents.length
-                      ? '${t.downloaded} ${currentCompletedDownloads.length} / ${currentDownloads.length}'
-                      : '${t.downloaded} ${currentCompletedDownloads.length} / ${currentDownloads.length} / ${canDownloadContents.length}'),
+                      ? '${isDownloading ? t.downloading : t.downloaded} ${currentCompletedDownloads.length} / ${currentDownloads.length}'
+                      : '${isDownloading ? t.downloading : t.downloaded} ${currentCompletedDownloads.length} / ${currentDownloads.length} / ${canDownloadContents.length}'),
               onPressed: () => isDownloading
                   ? downloader.pause(contents)
                   : incompletedDownloads.isNotEmpty

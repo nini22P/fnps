@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fnps/widgets/custom_badge.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:fnps/downloader/downloader.dart';
 import 'package:fnps/hive/hive_box_names.dart';
@@ -55,65 +56,43 @@ class ContentList extends HookWidget {
           // ),
           title: Text(content.name),
           subtitle: Row(children: [
-            Badge(
-              label: Text(content.category.name.toUpperCase()),
-              backgroundColor: Colors.blueGrey,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            ),
+            CustomBadge(text: content.category.name),
             if (content.pkgDirectLink != null) const SizedBox(width: 4),
             if (content.pkgDirectLink != null)
-              Badge(
-                label: Text('${fileSizeConv(content.fileSize)}'),
-                backgroundColor: Colors.blueGrey,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              ),
+              CustomBadge(text: fileSizeConv(content.fileSize)!),
             const SizedBox(width: 4),
             if (downloadItem != null &&
                 downloadItem.downloadStatus != DownloadStatus.completed)
-              Badge(
-                label: () {
-                  switch (downloadItem.downloadStatus) {
-                    case DownloadStatus.queued:
-                      return Text(
-                          '${t.download_queued} ${(downloadItem.progress * 100).toStringAsFixed(2)}%');
-                    case DownloadStatus.downloading:
-                      return Text(
-                          '${t.downloading} ${(downloadItem.progress * 100).toStringAsFixed(2)}%');
-                    case DownloadStatus.completed:
-                      return Text(
-                          '${t.download_completed} ${(downloadItem.progress * 100).toStringAsFixed(2)}%');
-                    case DownloadStatus.failed:
-                      return Text(
-                          '${t.download_failed} ${(downloadItem.progress * 100).toStringAsFixed(2)}%');
-                    case DownloadStatus.paused:
-                      return Text(
-                          '${t.download_paused} ${(downloadItem.progress * 100).toStringAsFixed(2)}%');
-                    case DownloadStatus.canceled:
-                      return Text(
-                          '${t.download_canceled} ${(downloadItem.progress * 100).toStringAsFixed(2)}%');
-                  }
-                }(),
-                backgroundColor: Colors.blueGrey,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              ),
+              CustomBadge(text: () {
+                switch (downloadItem.downloadStatus) {
+                  case DownloadStatus.queued:
+                    return '${t.download_queued} ${(downloadItem.progress * 100).toStringAsFixed(2)}%';
+                  case DownloadStatus.downloading:
+                    return '${t.downloading} ${(downloadItem.progress * 100).toStringAsFixed(2)}%';
+                  case DownloadStatus.completed:
+                    return '${t.download_completed} ${(downloadItem.progress * 100).toStringAsFixed(2)}%';
+                  case DownloadStatus.failed:
+                    return '${t.download_failed} ${(downloadItem.progress * 100).toStringAsFixed(2)}%';
+                  case DownloadStatus.paused:
+                    return '${t.download_paused} ${(downloadItem.progress * 100).toStringAsFixed(2)}%';
+                  case DownloadStatus.canceled:
+                    return '${t.download_canceled} ${(downloadItem.progress * 100).toStringAsFixed(2)}%';
+                }
+              }()),
             if (downloadItem != null &&
                 downloadItem.downloadStatus == DownloadStatus.completed)
-              Badge(
-                label: () {
-                  switch (downloadItem.extractStatus) {
-                    case ExtractStatus.queued:
-                      return Text(t.extract_queued);
-                    case ExtractStatus.extracting:
-                      return Text(t.extracting);
-                    case ExtractStatus.completed:
-                      return Text(t.extract_completed);
-                    case ExtractStatus.failed:
-                      return Text(t.extract_failed);
-                  }
-                }(),
-                backgroundColor: Colors.blueGrey,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              ),
+              CustomBadge(text: () {
+                switch (downloadItem.extractStatus) {
+                  case ExtractStatus.queued:
+                    return t.extract_queued;
+                  case ExtractStatus.extracting:
+                    return t.extracting;
+                  case ExtractStatus.completed:
+                    return t.extract_completed;
+                  case ExtractStatus.failed:
+                    return t.extract_failed;
+                }
+              }())
           ]),
           onTap: () => Navigator.pushNamed(context, '/content',
               arguments: ContentPageProps(content: content)),
