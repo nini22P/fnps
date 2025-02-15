@@ -1,4 +1,4 @@
-package nini22p.vita_dl
+package nini22p.fnps
 
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity

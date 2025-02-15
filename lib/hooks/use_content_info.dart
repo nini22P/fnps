@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/utils/content_info.dart';
-import 'package:vita_dl/utils/logger.dart';
+import 'package:fnps/models/content.dart';
+import 'package:fnps/utils/content_info.dart';
+import 'package:fnps/utils/logger.dart';
 
 class ContentInfo {
   final String? icon;

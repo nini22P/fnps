@@ -1,8 +1,8 @@
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
-import 'package:vita_dl/hive/hive_box_names.dart';
-import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/utils/content_info.dart';
+import 'package:fnps/hive/hive_box_names.dart';
+import 'package:fnps/models/content.dart';
+import 'package:fnps/utils/content_info.dart';
 
 List<Content> useContents(Content content, String? hmacKey) {
   if (content.category != Category.game) return [content];

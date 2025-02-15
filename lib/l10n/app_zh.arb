@@ -1,7 +1,7 @@
 {
   "@@locale": "zh",
   "addContentsNotice": "请先前往设置添加内容",
-  "app": "应用",
+  "browse": "浏览",
   "cancel": "取消",
   "content_id": "内容 ID",
   "contents": "下载内容",

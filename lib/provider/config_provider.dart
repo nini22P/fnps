@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:vita_dl/utils/path.dart';
+import 'package:fnps/utils/path.dart';
 import '../models/config.dart';
 
 class ConfigProvider with ChangeNotifier {

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:vita_dl/utils/logger.dart';
+import 'package:fnps/utils/logger.dart';
 
 Future<bool> sha256Check(String filePath, String expectedSha256) async {
   final List<int> bytes = await File(filePath).readAsBytes();

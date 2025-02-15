@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:vita_dl/globals.dart' as globals;
+import 'package:fnps/globals.dart' as globals;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
@@ -7,17 +7,17 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:vita_dl/hive/hive_box_names.dart';
-import 'package:vita_dl/hive_registrar.g.dart';
-import 'package:vita_dl/models/download_item.dart';
-import 'package:vita_dl/provider/config_provider.dart';
-import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/pages/content_page/content_page.dart';
-import 'package:vita_dl/pages/home_page.dart';
-import 'package:vita_dl/downloader/downloader.dart';
-import 'package:vita_dl/utils/path.dart';
-import 'package:vita_dl/utils/platform.dart';
-import 'package:vita_dl/utils/request_storage_permission.dart';
+import 'package:fnps/hive/hive_box_names.dart';
+import 'package:fnps/hive_registrar.g.dart';
+import 'package:fnps/models/download_item.dart';
+import 'package:fnps/provider/config_provider.dart';
+import 'package:fnps/models/content.dart';
+import 'package:fnps/pages/content_page/content_page.dart';
+import 'package:fnps/pages/home_page.dart';
+import 'package:fnps/downloader/downloader.dart';
+import 'package:fnps/utils/path.dart';
+import 'package:fnps/utils/platform.dart';
+import 'package:fnps/utils/request_storage_permission.dart';
 
 Future<void> main() async {
   await dotenv.load(fileName: '.env');
@@ -37,13 +37,13 @@ Future<void> main() async {
   runApp(
     ChangeNotifierProvider(
       create: (context) => ConfigProvider()..loadConfig(),
-      child: const VitaDL(),
+      child: const FNPS(),
     ),
   );
 }
 
-class VitaDL extends HookWidget {
-  const VitaDL({super.key});
+class FNPS extends HookWidget {
+  const FNPS({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -69,14 +69,14 @@ class VitaDL extends HookWidget {
     }, []);
 
     return MaterialApp(
-      title: 'VitaDL',
+      title: 'FNPS',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: const HomePage(title: 'VitaDL'),
+      home: const HomePage(title: 'FNPS'),
       onGenerateRoute: (settings) {
         if (settings.name == '/content') {
           final props = settings.arguments as ContentPageProps;

@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:android_x_storage/android_x_storage.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:vita_dl/utils/get_native_library_dir.dart';
-import 'package:vita_dl/utils/platform.dart';
-import 'package:vita_dl/utils/path_conv.dart';
-import 'package:vita_dl/utils/pkg.dart';
+import 'package:fnps/utils/get_native_library_dir.dart';
+import 'package:fnps/utils/platform.dart';
+import 'package:fnps/utils/path_conv.dart';
+import 'package:fnps/utils/pkg.dart';
 import 'package:path/path.dart' as p;
 
 Future<List<String>> getAppPath() async {
@@ -12,7 +12,7 @@ Future<List<String>> getAppPath() async {
       ? await getExecutableDirPath()
       : (await getExternalStorageDirectory())!.path;
   final path = pathConv(dir);
-  return [...path, 'VitaDL'];
+  return [...path, 'FNPS'];
 }
 
 Future<String> getExecutableDirPath() async {
@@ -30,7 +30,7 @@ Future<List<String>> getDownloadsPath() async {
   }
 
   final path = androidDownloadsPath != null
-      ? [...pathConv(androidDownloadsPath), 'VitaDL']
+      ? [...pathConv(androidDownloadsPath), 'FNPS']
       : [...appPath, 'downloads'];
 
   if (!await Directory(pathJoin(path)).exists()) {

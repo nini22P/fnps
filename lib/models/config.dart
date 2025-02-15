@@ -1,6 +1,6 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:vita_dl/models/content.dart';
+import 'package:fnps/models/content.dart';
 
 part 'config.freezed.dart';
 part 'config.g.dart';

@@ -2,13 +2,13 @@ import 'dart:collection';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:vita_dl/downloader/create_download_item.dart';
-import 'package:vita_dl/hive/hive_box_names.dart';
-import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/models/download_item.dart';
-import 'package:vita_dl/utils/logger.dart';
-import 'package:vita_dl/utils/path.dart';
-import 'package:vita_dl/utils/pkg.dart';
+import 'package:fnps/downloader/create_download_item.dart';
+import 'package:fnps/hive/hive_box_names.dart';
+import 'package:fnps/models/content.dart';
+import 'package:fnps/models/download_item.dart';
+import 'package:fnps/utils/logger.dart';
+import 'package:fnps/utils/path.dart';
+import 'package:fnps/utils/pkg.dart';
 
 class Downloader {
   Downloader._privateConstructor();

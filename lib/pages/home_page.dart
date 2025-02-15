@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/pages/contents.dart';
-import 'package:vita_dl/pages/downloads.dart';
-import 'package:vita_dl/pages/settings.dart';
-import 'package:vita_dl/utils/get_localizations.dart';
+import 'package:fnps/models/content.dart';
+import 'package:fnps/pages/contents.dart';
+import 'package:fnps/pages/downloads.dart';
+import 'package:fnps/pages/settings.dart';
+import 'package:fnps/utils/get_localizations.dart';
 
 class HomePage extends HookWidget {
   const HomePage({super.key, required this.title});
@@ -38,7 +38,7 @@ class HomePage extends HookWidget {
               destinations: [
                 NavigationRailDestination(
                   icon: const Icon(Icons.apps),
-                  label: Text(t.app),
+                  label: Text(t.browse),
                 ),
                 NavigationRailDestination(
                   icon: const Icon(Icons.palette),
@@ -87,7 +87,7 @@ class HomePage extends HookWidget {
               items: <BottomNavigationBarItem>[
                 BottomNavigationBarItem(
                   icon: const Icon(Icons.apps),
-                  label: t.app,
+                  label: t.browse,
                 ),
                 BottomNavigationBarItem(
                   icon: const Icon(Icons.palette),

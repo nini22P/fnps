@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:vita_dl/globals.dart' as globals;
+import 'package:fnps/globals.dart' as globals;
 import 'package:permission_handler/permission_handler.dart';
 
 Future<void> requestStoragePermission() async {

@@ -1,6 +1,6 @@
-import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/models/download_item.dart';
-import 'package:vita_dl/utils/path.dart';
+import 'package:fnps/models/content.dart';
+import 'package:fnps/models/download_item.dart';
+import 'package:fnps/utils/path.dart';
 
 Future<DownloadItem?> createDownloadItem(Content content) async {
   final url = content.pkgDirectLink;

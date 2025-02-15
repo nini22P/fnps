@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart';
-import 'package:vita_dl/utils/logger.dart';
-import 'package:vita_dl/utils/path.dart';
+import 'package:fnps/utils/logger.dart';
+import 'package:fnps/utils/path.dart';
 
 Future<String?> getPkgName(List<String> path) async {
   final List<String> pkg2zipPath = await getPkg2zipPath();

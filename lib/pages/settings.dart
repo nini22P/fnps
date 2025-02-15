@@ -8,15 +8,15 @@ import 'package:provider/provider.dart';
 import 'package:saf_stream/saf_stream.dart';
 import 'package:saf_util/saf_util.dart';
 import 'package:saf_util/saf_util_platform_interface.dart';
-import 'package:vita_dl/hive/hive_box_names.dart';
-import 'package:vita_dl/models/config.dart';
-import 'package:vita_dl/provider/config_provider.dart';
-import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/utils/get_localizations.dart';
-import 'package:vita_dl/utils/platform.dart';
-import 'package:vita_dl/utils/request_storage_permission.dart';
-import 'package:vita_dl/utils/tsv_to_contents.dart';
-import 'package:vita_dl/utils/uri.dart';
+import 'package:fnps/hive/hive_box_names.dart';
+import 'package:fnps/models/config.dart';
+import 'package:fnps/provider/config_provider.dart';
+import 'package:fnps/models/content.dart';
+import 'package:fnps/utils/get_localizations.dart';
+import 'package:fnps/utils/platform.dart';
+import 'package:fnps/utils/request_storage_permission.dart';
+import 'package:fnps/utils/tsv_to_contents.dart';
+import 'package:fnps/utils/uri.dart';
 
 class Settings extends HookWidget {
   const Settings({super.key});
@@ -281,9 +281,9 @@ class Settings extends HookWidget {
             ),
             const Divider(),
             ListTile(
-              title: const Text('VitaDL'),
-              subtitle: const Text('A PSVita application downloader'),
-              onTap: () => launchURL('https://github.com/nini22P/VitaDL'),
+              title: const Text('FNPS'),
+              subtitle: const Text('Flutter NoPayStation client'),
+              onTap: () => launchURL('https://github.com/nini22P/fnps'),
             ),
           ],
         ),

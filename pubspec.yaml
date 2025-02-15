@@ -1,5 +1,5 @@
-name: vita_dl
-description: "A PSVita application downloader"
+name: fnps
+description: "Flutter NoPayStation client"
 publish_to: 'none'
 version: 1.2.4+3
 

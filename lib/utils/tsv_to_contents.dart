@@ -1,5 +1,5 @@
 import 'package:csv/csv.dart';
-import 'package:vita_dl/models/content.dart';
+import 'package:fnps/models/content.dart';
 
 Future<List<Content>> tsvToContents(
     String content, Platform platform, Category category) async {
@@ -22,7 +22,8 @@ Future<List<Content>> tsvToContents(
               .toString()
               .replaceAll('__COMMA__', ',')
               .replaceAll('__SINGLE_QUOTE__', "'")
-              .replaceAll('__DOUBLE_QUOTE__', '"');
+              .replaceAll('__DOUBLE_QUOTE__', '"')
+              .trim();
         } else {
           rowMap[headers[i]] = null;
         }

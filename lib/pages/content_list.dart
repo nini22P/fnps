@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
-import 'package:vita_dl/downloader/downloader.dart';
-import 'package:vita_dl/hive/hive_box_names.dart';
-import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/models/download_item.dart';
-import 'package:vita_dl/pages/content_page/content_page.dart';
-import 'package:vita_dl/utils/copy_to_clipboard.dart';
-import 'package:vita_dl/utils/file_size_convert.dart';
-import 'package:vita_dl/utils/get_localizations.dart';
+import 'package:fnps/downloader/downloader.dart';
+import 'package:fnps/hive/hive_box_names.dart';
+import 'package:fnps/models/content.dart';
+import 'package:fnps/models/download_item.dart';
+import 'package:fnps/pages/content_page/content_page.dart';
+import 'package:fnps/utils/copy_to_clipboard.dart';
+import 'package:fnps/utils/file_size_convert.dart';
+import 'package:fnps/utils/get_localizations.dart';
 
 class ContentList extends HookWidget {
   const ContentList({

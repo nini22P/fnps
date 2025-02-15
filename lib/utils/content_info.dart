@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/utils/logger.dart';
+import 'package:fnps/models/content.dart';
+import 'package:fnps/utils/logger.dart';
 import 'package:xml/xml.dart';
 import 'package:crypto/crypto.dart';
 

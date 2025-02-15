@@ -1,7 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:vita_dl/hive/hive_types.dart';
+import 'package:fnps/hive/hive_types.dart';
 
 part 'content.freezed.dart';
 part 'content.g.dart';

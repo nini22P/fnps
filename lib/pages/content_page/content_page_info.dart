@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_html/flutter_html.dart' as html;
 import 'package:provider/provider.dart';
-import 'package:vita_dl/hooks/use_change_info.dart';
-import 'package:vita_dl/hooks/use_content_info.dart';
-import 'package:vita_dl/models/content.dart';
-import 'package:vita_dl/provider/config_provider.dart';
-import 'package:vita_dl/utils/copy_to_clipboard.dart';
-import 'package:vita_dl/utils/file_size_convert.dart';
-import 'package:vita_dl/utils/get_localizations.dart';
-import 'package:vita_dl/utils/uri.dart';
+import 'package:fnps/hooks/use_change_info.dart';
+import 'package:fnps/hooks/use_content_info.dart';
+import 'package:fnps/models/content.dart';
+import 'package:fnps/provider/config_provider.dart';
+import 'package:fnps/utils/copy_to_clipboard.dart';
+import 'package:fnps/utils/file_size_convert.dart';
+import 'package:fnps/utils/get_localizations.dart';
+import 'package:fnps/utils/uri.dart';
 
 class ContentPageInfo extends HookWidget {
   const ContentPageInfo({
@@ -170,18 +170,19 @@ class ContentPageInfo extends HookWidget {
                           ? t.download_link_not_available
                           : t.copy_download_link),
                     ),
-                    ElevatedButton(
-                      onPressed: content.zRIF == null
-                          ? null
-                          : () => copyToClipboard(
-                                context,
-                                '${content.zRIF}',
-                                t.zrif_copied,
-                              ),
-                      child: Text(content.zRIF == null
-                          ? t.zrif_not_available
-                          : '${t.copy} zRIF'),
-                    ),
+                    if (content.platform == Platform.psv)
+                      ElevatedButton(
+                        onPressed: content.zRIF == null
+                            ? null
+                            : () => copyToClipboard(
+                                  context,
+                                  '${content.zRIF}',
+                                  t.zrif_copied,
+                                ),
+                        child: Text(content.zRIF == null
+                            ? t.zrif_not_available
+                            : '${t.copy} zRIF'),
+                      ),
                   ],
                 ),
                 // 媒体
