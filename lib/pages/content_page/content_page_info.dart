@@ -118,10 +118,9 @@ class ContentPageInfo extends HookWidget {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        if (content.appVersion != null ||
-                            update?.appVersion != null)
+                        if (content.version != null || update?.version != null)
                           Text(
-                              '${t.version}: ${update?.appVersion ?? content.appVersion}'),
+                              '${t.version}: ${update?.version ?? content.version}'),
                         if (content.fileSize != 0)
                           Text('${t.size}: ${fileSizeConv(size)}'),
                         if (content.contentID != null)

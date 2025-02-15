@@ -54,7 +54,9 @@ class ContentList extends HookWidget {
           //     ),
           //   ),
           // ),
-          title: Text(content.name),
+          title: Text(content.category == Category.update
+              ? '${content.name} ${content.version}'
+              : content.name),
           subtitle: Row(children: [
             CustomBadge(text: content.category.name),
             if (content.pkgDirectLink != null) const SizedBox(width: 4),

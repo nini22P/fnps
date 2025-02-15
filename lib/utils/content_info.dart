@@ -76,7 +76,7 @@ Future<UpdateInfo?> getUpdateInfo(Content content, String hmacKey) async {
       final titlePatch = document.findAllElements('titlepatch').first;
       final tag = titlePatch.findElements('tag').first;
 
-      final package = tag.findElements('package').first;
+      final package = tag.findElements('package').last;
 
       final version = package.getAttribute('version');
       final size = int.tryParse(package.getAttribute('size') ?? '0');
@@ -113,8 +113,8 @@ Future<Content?> getUpdate(Content content, String hmacKey) async {
       platform: content.platform,
       category: Category.update,
       titleID: titleID,
-      name: '${content.name} ${updateinfo.version}',
-      appVersion: updateinfo.version,
+      name: content.name,
+      version: updateinfo.version,
       fileSize: updateinfo.size,
       pkgDirectLink: updateinfo.url,
       contentID: content.contentID,

@@ -79,7 +79,7 @@ abstract class Content extends HiveObject with _$Content {
     @HiveField(12) String? sha256,
     @HiveField(13) String? sha1sum,
     @HiveField(14) String? requiredFW,
-    @HiveField(15) String? appVersion,
+    @HiveField(15) String? version,
   }) = _Content;
 
   factory Content.fromJson(Map<String, dynamic> json) =>
@@ -126,11 +126,14 @@ abstract class Content extends HiveObject with _$Content {
       fileSize: int.tryParse(map['File Size']),
       sha256: checkNull(map['SHA256']),
       requiredFW: checkNull(map['Required FW']),
-      appVersion: checkNull(map['App Version']),
+      version:
+          checkNull(map['Update Version']) ?? checkNull(map['App Version']),
     );
   }
 
   String? getID() => category == Category.update && contentID != null
-      ? '$contentID-$appVersion'
+      ? version != null
+          ? '$contentID-$version'
+          : '$contentID-update'
       : contentID;
 }

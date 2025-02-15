@@ -77,6 +77,16 @@ class Config with _$Config {
         category: Category.update,
         url: Env().pspUpdatesUrl,
       ),
+      Source(
+        platform: Platform.psm,
+        category: Category.game,
+        url: Env().psmGamesUrl,
+      ),
+      Source(
+        platform: Platform.psx,
+        category: Category.game,
+        url: Env().psxGamesUrl,
+      ),
     ],
     platforms: [Platform.psv, Platform.psp],
     categories: [Category.game, Category.dlc, Category.theme, Category.demo],

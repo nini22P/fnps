@@ -20,20 +20,19 @@ List<Content> useContents(Content content, String? hmacKey) {
       ]);
 
   final titleID = useMemoized(() => content.titleID);
-  // final List<Content> updates = useMemoized(() => contents
-  //     .where((content) =>
-  //         content.titleID == titleID && content.category == Category.update)
-  //     .toList());
-  // final List<Content> sortedUpdates =
-  //     [...updates].sorted((a, b) => b.appVersion!.compareTo(a.appVersion!));
-  // final Content? latestUpdate =
-  //     sortedUpdates.isEmpty ? null : sortedUpdates.first;
-  final update = useState<Content?>(null);
+  final List<Content> updates = useMemoized(() => contents
+      .where((content) =>
+          content.titleID == titleID && content.category == Category.update)
+      .toList());
+  final update = useState<Content?>(updates.lastOrNull);
 
   useEffect(() {
     () async {
       if (hmacKey != null && hmacKey.isNotEmpty) {
-        update.value = await getUpdate(content, hmacKey) ?? update.value;
+        final upd = await getUpdate(content, hmacKey);
+        if (upd != null) {
+          update.value = upd;
+        }
       }
     }();
     return null;

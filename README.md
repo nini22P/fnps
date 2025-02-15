@@ -4,7 +4,7 @@ Flutter Nopaystation client
 
 ## Building
 
-First add the add `.env` file
+First add `.env` file
 
 ```
 PSV_GAMES_URL=
