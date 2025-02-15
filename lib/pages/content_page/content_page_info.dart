@@ -101,20 +101,26 @@ class ContentPageInfo extends HookWidget {
                         if (content.originalName != null)
                           Text('${content.originalName}'),
                         const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
                           children: [
                             if (content.region != null)
                               CustomBadge(
                                   text: content.region!.name, primary: true),
-                            const SizedBox(width: 4),
                             CustomBadge(text: content.platform.name),
-                            const SizedBox(width: 4),
                             CustomBadge(text: content.category.name),
-                            const SizedBox(width: 4),
                             CustomBadge(text: content.titleID),
-                            const SizedBox(width: 4),
+                            if (content.version != null ||
+                                update?.version != null)
+                              CustomBadge(
+                                text:
+                                    update?.version ?? content.version ?? 'N/A',
+                              ),
+                            if (content.fileSize != null &&
+                                content.fileSize != 0)
+                              CustomBadge(
+                                  text: fileSizeConv(content.fileSize)!),
                           ],
                         ),
                         const SizedBox(height: 8),

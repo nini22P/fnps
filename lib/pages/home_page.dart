@@ -21,6 +21,16 @@ class HomePage extends HookWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
+    void navigateToPage(int index, {bool animate = false}) {
+      animate
+          ? pageController.animateToPage(
+              index,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            )
+          : pageController.jumpToPage(index);
+    }
+
     return Scaffold(
       body: Row(
         children: [
@@ -61,11 +71,17 @@ class HomePage extends HookWidget {
               onPageChanged: (index) {
                 selectedIndex.value = index;
               },
-              children: const [
-                Contents(categories: [Category.game]),
-                Contents(categories: [Category.theme]),
-                Downloads(),
-                Settings(),
+              children: [
+                Contents(
+                  categories: const [Category.game],
+                  navigateToPage: navigateToPage,
+                ),
+                Contents(
+                  categories: const [Category.theme],
+                  navigateToPage: navigateToPage,
+                ),
+                const Downloads(),
+                const Settings(),
               ],
             ),
           ),

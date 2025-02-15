@@ -1,9 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fnps/utils/request_storage_permission.dart';
 import 'package:fnps/widgets/custom_badge.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:fnps/globals.dart' as globals;
 import 'package:fnps/hive/hive_box_names.dart';
 import 'package:fnps/models/config.dart';
 import 'package:fnps/models/content.dart';
@@ -17,9 +20,11 @@ class Contents extends HookWidget {
   const Contents({
     super.key,
     required this.categories,
+    required this.navigateToPage,
   });
 
   final List<Category> categories;
+  final void Function(int index) navigateToPage;
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +99,11 @@ class Contents extends HookWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
+    final refreshValue = useState(0);
+    refresh() => refreshValue.value++;
+
     return Scaffold(
+      key: ValueKey(refreshValue.value),
       appBar: AppBar(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -231,50 +240,75 @@ class Contents extends HookWidget {
         ),
         forceMaterialTransparency: true,
       ),
-      body: ListView.builder(
-        key: PageStorageKey(searchText.value),
-        itemCount: sortedContents.value.length,
-        itemBuilder: (context, index) {
-          final content = sortedContents.value[index];
-          return ListTile(
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: CachedNetworkImage(
-                  imageUrl: getContentIcon(content, size: 96)!,
-                  fit: BoxFit.contain,
-                  placeholder: (context, url) => const SizedBox(
-                    child: Center(child: Icon(Icons.gamepad)),
-                  ),
-                  errorWidget: (context, url, error) =>
-                      const Icon(Icons.gamepad),
-                ),
+      body: contents.isEmpty ||
+              globals.storagePermissionStatus != PermissionStatus.granted
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (globals.storagePermissionStatus !=
+                      PermissionStatus.granted)
+                    ElevatedButton(
+                      onPressed: () async {
+                        await requestStoragePermission();
+                        refresh();
+                      },
+                      child: Text(t.grant_storage_permission),
+                    ),
+                  if (globals.storagePermissionStatus !=
+                      PermissionStatus.granted)
+                    const SizedBox(height: 16),
+                  if (contents.isEmpty)
+                    ElevatedButton(
+                      onPressed: () => navigateToPage(3),
+                      child: Text(t.sync_or_add_content_list),
+                    )
+                ],
               ),
+            )
+          : ListView.builder(
+              key: PageStorageKey(searchText.value),
+              itemCount: sortedContents.value.length,
+              itemBuilder: (context, index) {
+                final content = sortedContents.value[index];
+                return ListTile(
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: CachedNetworkImage(
+                        imageUrl: getContentIcon(content, size: 96)!,
+                        fit: BoxFit.contain,
+                        placeholder: (context, url) => const SizedBox(
+                          child: Center(child: Icon(Icons.gamepad)),
+                        ),
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.gamepad),
+                      ),
+                    ),
+                  ),
+                  title: Text(content.name),
+                  subtitle: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: [
+                      if (content.region != null)
+                        CustomBadge(text: content.region!.name, primary: true),
+                      CustomBadge(text: content.platform.name),
+                      CustomBadge(text: content.category.name),
+                      CustomBadge(text: content.titleID),
+                      if (content.fileSize != null && content.fileSize != 0)
+                        CustomBadge(text: fileSizeConv(content.fileSize)!),
+                    ],
+                  ),
+                  onTap: () {
+                    focusNode.unfocus();
+                    Navigator.pushNamed(context, '/content',
+                        arguments: ContentPageProps(content: content));
+                  },
+                );
+              },
             ),
-            title: Text(content.name),
-            subtitle: Wrap(
-              // mainAxisAlignment: MainAxisAlignment.start,
-              spacing: 4,
-              runSpacing: 4,
-              children: [
-                if (content.region != null)
-                  CustomBadge(text: content.region!.name, primary: true),
-                CustomBadge(text: content.platform.name),
-                CustomBadge(text: content.category.name),
-                CustomBadge(text: content.titleID),
-                if (content.fileSize != null && content.fileSize != 0)
-                  CustomBadge(text: fileSizeConv(content.fileSize)!),
-              ],
-            ),
-            onTap: () {
-              focusNode.unfocus();
-              Navigator.pushNamed(context, '/content',
-                  arguments: ContentPageProps(content: content));
-            },
-          );
-        },
-      ),
     );
   }
 }

@@ -91,7 +91,7 @@ Future<UpdateInfo?> getUpdateInfo(Content content, String hmacKey) async {
       }
 
       return UpdateInfo(
-        version: version,
+        version: version.startsWith('0') ? version.substring(1) : version,
         size: size,
         url: url,
         sha1sum: sha1sum,

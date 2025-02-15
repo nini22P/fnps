@@ -1,5 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fnps/utils/content_info.dart';
 import 'package:fnps/widgets/custom_badge.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:fnps/downloader/downloader.dart';
@@ -40,62 +42,66 @@ class ContentList extends HookWidget {
         final content = contents[index];
         final DownloadItem? downloadItem = downloads.get(content.getID());
         return ListTile(
-          // leading: ClipRRect(
-          //   borderRadius: BorderRadius.circular(8),
-          //   child: AspectRatio(
-          //     aspectRatio: 1,
-          //     child: CachedNetworkImage(
-          //       imageUrl: getContentIcon(content, size: 96)!,
-          //       fit: BoxFit.contain,
-          //       placeholder: (context, url) => const SizedBox(
-          //         child: Center(child: Icon(Icons.gamepad)),
-          //       ),
-          //       errorWidget: (context, url, error) => const Icon(Icons.gamepad),
-          //     ),
-          //   ),
-          // ),
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: CachedNetworkImage(
+                imageUrl: getContentIcon(content, size: 96)!,
+                fit: BoxFit.contain,
+                placeholder: (context, url) => const SizedBox(
+                  child: Center(child: Icon(Icons.gamepad)),
+                ),
+                errorWidget: (context, url, error) => const Icon(Icons.gamepad),
+              ),
+            ),
+          ),
           title: Text(content.category == Category.update
               ? '${content.name} ${content.version}'
               : content.name),
-          subtitle: Row(children: [
-            CustomBadge(text: content.category.name),
-            if (content.pkgDirectLink != null) const SizedBox(width: 4),
-            if (content.pkgDirectLink != null)
-              CustomBadge(text: fileSizeConv(content.fileSize)!),
-            const SizedBox(width: 4),
-            if (downloadItem != null &&
-                downloadItem.downloadStatus != DownloadStatus.completed)
-              CustomBadge(text: () {
-                switch (downloadItem.downloadStatus) {
-                  case DownloadStatus.queued:
-                    return '${t.download_queued} ${(downloadItem.progress * 100).toStringAsFixed(2)}%';
-                  case DownloadStatus.downloading:
-                    return '${t.downloading} ${(downloadItem.progress * 100).toStringAsFixed(2)}%';
-                  case DownloadStatus.completed:
-                    return '${t.download_completed} ${(downloadItem.progress * 100).toStringAsFixed(2)}%';
-                  case DownloadStatus.failed:
-                    return '${t.download_failed} ${(downloadItem.progress * 100).toStringAsFixed(2)}%';
-                  case DownloadStatus.paused:
-                    return '${t.download_paused} ${(downloadItem.progress * 100).toStringAsFixed(2)}%';
-                  case DownloadStatus.canceled:
-                    return '${t.download_canceled} ${(downloadItem.progress * 100).toStringAsFixed(2)}%';
-                }
-              }()),
-            if (downloadItem != null &&
-                downloadItem.downloadStatus == DownloadStatus.completed)
-              CustomBadge(text: () {
-                switch (downloadItem.extractStatus) {
-                  case ExtractStatus.queued:
-                    return t.extract_queued;
-                  case ExtractStatus.extracting:
-                    return t.extracting;
-                  case ExtractStatus.completed:
-                    return t.extract_completed;
-                  case ExtractStatus.failed:
-                    return t.extract_failed;
-                }
-              }())
-          ]),
+          subtitle: Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              CustomBadge(text: content.category.name),
+              if (content.pkgDirectLink != null)
+                CustomBadge(text: fileSizeConv(content.fileSize)!),
+              if (downloadItem != null &&
+                  downloadItem.downloadStatus != DownloadStatus.completed)
+                CustomBadge(text: () {
+                  final progress =
+                      (downloadItem.progress * 100).toStringAsFixed(2);
+                  switch (downloadItem.downloadStatus) {
+                    case DownloadStatus.queued:
+                      return '${t.download_queued} $progress%';
+                    case DownloadStatus.downloading:
+                      return '${t.downloading} $progress%';
+                    case DownloadStatus.completed:
+                      return '${t.download_completed} $progress%';
+                    case DownloadStatus.failed:
+                      return '${t.download_failed} $progress%';
+                    case DownloadStatus.paused:
+                      return '${t.download_paused} $progress%';
+                    case DownloadStatus.canceled:
+                      return '${t.download_canceled} $progress%';
+                  }
+                }()),
+              if (downloadItem != null &&
+                  downloadItem.downloadStatus == DownloadStatus.completed)
+                CustomBadge(text: () {
+                  switch (downloadItem.extractStatus) {
+                    case ExtractStatus.queued:
+                      return t.extract_queued;
+                    case ExtractStatus.extracting:
+                      return t.extracting;
+                    case ExtractStatus.completed:
+                      return t.extract_completed;
+                    case ExtractStatus.failed:
+                      return t.extract_failed;
+                  }
+                }())
+            ],
+          ),
           onTap: () => Navigator.pushNamed(context, '/content',
               arguments: ContentPageProps(content: content)),
           trailing: Row(
