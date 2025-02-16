@@ -58,5 +58,4 @@ flutter:
   uses-material-design: true
   assets:
     - .env
-    - assets/pkg2zip-linux-aarch64/pkg2zip
     - assets/pkg2zip-windows-x64/pkg2zip.exe

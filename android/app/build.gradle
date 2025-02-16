@@ -70,17 +70,17 @@ flutter {
     source = "../.."
 }
 
-task copyPkg2zipAarch64(type: Copy) {
-    from("../../assets/pkg2zip-linux-aarch64/pkg2zip")
+task copyPkg2zipArm64V8a(type: Copy) {
+    from("../../assets/pkg2zip-android-arm64-v8a/pkg2zip")
     into("./src/main/jniLibs/arm64-v8a")
     rename("pkg2zip", "libpkg2zip.so")
 }
 
-task copyPkg2zipArm(type: Copy) {
-    from("../../assets/pkg2zip-linux-arm/pkg2zip")
+task copyPkg2zipArmeabiV7a(type: Copy) {
+    from("../../assets/pkg2zip-android-armeabi-v7a/pkg2zip")
     into("./src/main/jniLibs/armeabi-v7a")
     rename("pkg2zip", "libpkg2zip.so")
 }
 
-preBuild.dependsOn(copyPkg2zipAarch64)
-preBuild.dependsOn(copyPkg2zipArm)
+preBuild.dependsOn(copyPkg2zipArm64V8a)
+preBuild.dependsOn(copyPkg2zipArmeabiV7a)

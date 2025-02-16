@@ -47,7 +47,7 @@ Open shell, run
 ``` shell
 flutter pub get
 flutter pub run build_runner build --delete-conflicting-outputs
-flutter build apk --target-platform android-arm64
+flutter build apk
 ```
 
 ### Windows
