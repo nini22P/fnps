@@ -1,6 +1,6 @@
 # FNPS
 
-Flutter Nopaystation client
+Flutter NoPayStation client
 
 ## Building
 
