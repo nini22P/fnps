@@ -39,11 +39,7 @@ class HomePage extends HookWidget {
               selectedIndex: selectedIndex.value,
               onDestinationSelected: (index) {
                 selectedIndex.value = index;
-                pageController.animateToPage(
-                  index,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
+                navigateToPage(index);
               },
               destinations: [
                 NavigationRailDestination(
@@ -73,7 +69,7 @@ class HomePage extends HookWidget {
               },
               children: [
                 Contents(
-                  categories: const [Category.game],
+                  categories: const [Category.game, Category.demo],
                   navigateToPage: navigateToPage,
                 ),
                 Contents(
@@ -94,11 +90,7 @@ class HomePage extends HookWidget {
               currentIndex: selectedIndex.value,
               onTap: (index) {
                 selectedIndex.value = index;
-                pageController.animateToPage(
-                  index,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
+                navigateToPage(index);
               },
               items: <BottomNavigationBarItem>[
                 BottomNavigationBarItem(

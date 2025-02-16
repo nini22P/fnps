@@ -33,6 +33,8 @@ enum ExtractStatus {
   completed,
   @HiveField(3)
   failed,
+  @HiveField(4)
+  notNeeded,
 }
 
 @freezed

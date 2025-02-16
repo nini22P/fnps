@@ -87,6 +87,26 @@ class Config with _$Config {
         category: Category.game,
         url: Env().psxGamesUrl,
       ),
+      Source(
+        platform: Platform.ps3,
+        category: Category.game,
+        url: Env().ps3GamesUrl,
+      ),
+      Source(
+        platform: Platform.ps3,
+        category: Category.dlc,
+        url: Env().ps3DLCsUrl,
+      ),
+      Source(
+        platform: Platform.ps3,
+        category: Category.theme,
+        url: Env().ps3ThemesUrl,
+      ),
+      Source(
+        platform: Platform.ps3,
+        category: Category.demo,
+        url: Env().ps3DemosUrl,
+      ),
     ],
     platforms: [Platform.psv, Platform.psp],
     categories: [Category.game, Category.dlc, Category.theme, Category.demo],

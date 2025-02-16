@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:fnps/hive/hive_box_names.dart';
-import 'package:fnps/hive_registrar.g.dart';
 import 'package:fnps/models/download_item.dart';
 import 'package:fnps/provider/config_provider.dart';
 import 'package:fnps/models/content.dart';
@@ -26,13 +25,20 @@ Future<void> main() async {
 
   await Hive.initFlutter(pathJoin(configPath));
 
-  Hive.registerAdapters();
+  Hive.registerAdapter(PlatformAdapter());
+  Hive.registerAdapter(CategoryAdapter());
+  Hive.registerAdapter(RegionAdapter());
+  Hive.registerAdapter(ContentAdapter());
+  Hive.registerAdapter(DownloadStatusAdapter());
+  Hive.registerAdapter(ExtractStatusAdapter());
+  Hive.registerAdapter(DownloadItemAdapter());
 
   await Hive.openBox<DownloadItem>(downloadBoxName);
   await Hive.openBox<Content>(psvBoxName);
   await Hive.openBox<Content>(pspBoxName);
   await Hive.openBox<Content>(psmBoxName);
   await Hive.openBox<Content>(psxBoxName);
+  await Hive.openBox<Content>(ps3BoxName);
 
   await Downloader.instance.init();
 

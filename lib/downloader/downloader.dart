@@ -1,6 +1,7 @@
 import 'dart:collection';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:fnps/utils/rap.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:fnps/downloader/create_download_item.dart';
 import 'package:fnps/hive/hive_box_names.dart';
@@ -316,10 +317,17 @@ class Downloader {
             ),
           );
         } else {
+          if (content.platform == Platform.ps3 &&
+              content.rap != null &&
+              content.rap!.isNotEmpty) {
+            await downloadRAP(content);
+          }
           downloadBox.put(
             downloadItem.id,
             downloadItem.copyWith(
-              extractStatus: ExtractStatus.failed,
+              extractStatus: content.platform == Platform.ps3
+                  ? ExtractStatus.notNeeded
+                  : ExtractStatus.failed,
             ),
           );
         }

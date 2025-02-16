@@ -60,6 +60,7 @@ class Settings extends HookWidget {
     final pspBox = Hive.box<Content>(pspBoxName);
     final psmBox = Hive.box<Content>(psmBoxName);
     final psxBox = Hive.box<Content>(psxBoxName);
+    final ps3Box = Hive.box<Content>(ps3BoxName);
     final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
 
     final TextEditingController hmacKeyController =
@@ -132,6 +133,30 @@ class Settings extends HookWidget {
         category: Category.game,
         status: SyncStatus.done,
       ),
+      SourceTile(
+        title: 'PS3 ${t.game_list}',
+        platform: Platform.ps3,
+        category: Category.game,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PS3 ${t.dlc_list}',
+        platform: Platform.ps3,
+        category: Category.dlc,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PS3 ${t.theme_list}',
+        platform: Platform.ps3,
+        category: Category.theme,
+        status: SyncStatus.done,
+      ),
+      SourceTile(
+        title: 'PS3 ${t.demo_list}',
+        platform: Platform.ps3,
+        category: Category.demo,
+        status: SyncStatus.done,
+      ),
     ]);
 
     final isSync = useMemoized(
@@ -170,6 +195,12 @@ class Settings extends HookWidget {
               .where((content) => content.category != category);
           await psxBox.clear();
           await psxBox.addAll([...values, ...contents]);
+          break;
+        case Platform.ps3:
+          final values = [...ps3Box.values]
+              .where((content) => content.category != category);
+          await ps3Box.clear();
+          await ps3Box.addAll([...values, ...contents]);
           break;
         default:
           break;
@@ -349,20 +380,19 @@ class Settings extends HookWidget {
           CustomBadge(text: url == null ? t.local : t.remote),
           if (updateTime == null && !isSyncing) const SizedBox(width: 4),
           if (updateTime == null && !isSyncing)
-            CustomBadge(text: t.not_syncing),
+            CustomBadge(text: url == null ? t.not_added : t.not_syncing),
           if (isSyncing) const SizedBox(width: 4),
           if (isSyncing)
             CustomBadge(
                 text:
                     tile.status == SyncStatus.syncing ? t.syncing : t.queuing),
           const SizedBox(width: 6),
-          if (!isMobile && url != null)
-            Expanded(
-                child: Text(
-              url,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            )),
+          Expanded(
+              child: Text(
+            !isMobile && url != null ? url : '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          )),
           if (!isMobile && url != null) const SizedBox(width: 16),
           if (updateTime != null) Text(updateTime),
         ]),
@@ -392,7 +422,9 @@ class Settings extends HookWidget {
     tilesBuilder() {
       List<Widget> result = [];
       for (var tile in sourceTileData.value) {
-        if ((tile.platform == Platform.psp || tile.platform == Platform.psm) &&
+        if ((tile.platform == Platform.psp ||
+                tile.platform == Platform.psm ||
+                tile.platform == Platform.ps3) &&
             tile.category == Category.game) {
           result.add(const Divider());
         }
@@ -411,6 +443,7 @@ class Settings extends HookWidget {
       await pspBox.clear();
       await psmBox.clear();
       await psxBox.clear();
+      await ps3Box.clear();
       await downloadBox.clear();
       await configProvider.resetConfig();
     }

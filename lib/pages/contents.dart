@@ -40,12 +40,14 @@ class Contents extends HookWidget {
     final pspBox = Hive.box<Content>(pspBoxName);
     final psmBox = Hive.box<Content>(psmBoxName);
     final psxBox = Hive.box<Content>(psxBoxName);
+    final ps3Box = Hive.box<Content>(ps3BoxName);
 
     final contents = useMemoized(() => [
           ...psvBox.values,
           ...pspBox.values,
           ...psmBox.values,
-          ...psxBox.values
+          ...psxBox.values,
+          ...ps3Box.values
         ].where((content) => categories.contains(content.category)).toList());
 
     final filteredContents = useState(<Content>[]);
@@ -68,7 +70,8 @@ class Contents extends HookWidget {
                   '${content.originalName}'
                       .toLowerCase()
                       .contains(searchText.value.toLowerCase())) &&
-              selectedRegions.contains(content.region))
+              selectedRegions.contains(content.region) &&
+              content.titleID.isNotEmpty)
           .toList();
       return;
     }, [searchText.value, selectedRegions, contents]);
@@ -139,7 +142,7 @@ class Contents extends HookWidget {
                                   ...regions.map(
                                     (Region region) => CheckedPopupMenuItem(
                                       checked: selectedRegions.contains(region),
-                                      child: Text(region.name),
+                                      child: Text(region.name.toUpperCase()),
                                       onTap: () {
                                         focusNode.unfocus();
                                         if (selectedRegions.contains(region)) {
@@ -277,7 +280,7 @@ class Contents extends HookWidget {
                     child: AspectRatio(
                       aspectRatio: 1,
                       child: CachedNetworkImage(
-                        imageUrl: getContentIcon(content, size: 96)!,
+                        imageUrl: getContentIcon(content, size: 96) ?? '',
                         fit: BoxFit.contain,
                         placeholder: (context, url) => const SizedBox(
                           child: Center(child: Icon(Icons.gamepad)),

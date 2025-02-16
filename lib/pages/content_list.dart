@@ -2,6 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:fnps/utils/content_info.dart';
+import 'package:fnps/utils/logger.dart';
+import 'package:fnps/utils/open_explorer.dart';
+import 'package:fnps/utils/rap.dart';
 import 'package:fnps/widgets/custom_badge.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:fnps/downloader/downloader.dart';
@@ -98,6 +101,8 @@ class ContentList extends HookWidget {
                       return t.extract_completed;
                     case ExtractStatus.failed:
                       return t.extract_failed;
+                    case ExtractStatus.notNeeded:
+                      return t.download_completed;
                   }
                 }())
             ],
@@ -131,7 +136,7 @@ class ContentList extends HookWidget {
                           return const SizedBox();
                         case ExtractStatus.completed:
                           return IconButton(
-                            tooltip: t.remove_downloaded_pkg,
+                            tooltip: t.delete_downloaded_pkg,
                             icon: const Icon(Icons.delete),
                             onPressed: () => downloader.remove([content]),
                           );
@@ -140,12 +145,28 @@ class ContentList extends HookWidget {
                             icon: const Icon(Icons.restart_alt),
                             onPressed: () => downloader.add([content]),
                           );
+                        case ExtractStatus.notNeeded:
+                          return const SizedBox();
                       }
                   }
                 }(),
               if (content.pkgDirectLink != null || content.zRIF != null)
                 PopupMenuButton(
                   itemBuilder: (context) => [
+                    if (downloadItem != null &&
+                        downloadItem.downloadStatus != DownloadStatus.queued)
+                      PopupMenuItem(
+                        child: Text(t.open_in_folder),
+                        onTap: () async {
+                          final result =
+                              await openExplorer(dir: downloadItem.directory);
+                          if (!result && context.mounted) {
+                            logger('Could not open directory');
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(t.cannot_open_in_folder)));
+                          }
+                        },
+                      ),
                     if (content.pkgDirectLink != null)
                       PopupMenuItem(
                         child: Text(t.copy_download_link),
@@ -164,16 +185,32 @@ class ContentList extends HookWidget {
                           t.zrif_copied,
                         ),
                       ),
+                    if (content.rap != null)
+                      PopupMenuItem(
+                        child: Text('${t.download} RAP ${t.file}'),
+                        onTap: () async {
+                          final result = await downloadRAP(content);
+                          if (result && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${t.downloaded} RAP ${t.file}'),
+                              ),
+                            );
+                          }
+                        },
+                      ),
                     if (downloadItem?.downloadStatus ==
                             DownloadStatus.completed &&
-                        downloadItem?.extractStatus != ExtractStatus.extracting)
+                        downloadItem?.extractStatus !=
+                            ExtractStatus.extracting &&
+                        downloadItem?.extractStatus != ExtractStatus.notNeeded)
                       PopupMenuItem(
                         child: Text(t.re_extract),
                         onTap: () => downloader.add([content]),
                       ),
                     if (downloadItem != null)
                       PopupMenuItem(
-                        child: Text(t.remove_downloaded_pkg),
+                        child: Text(t.delete_downloaded_pkg),
                         onTap: () => downloader.remove([content]),
                       ),
                   ],

@@ -156,18 +156,23 @@ class ContentPageInfo extends HookWidget {
                           ? t.download_link_not_available
                           : t.copy_download_link),
                     ),
-                    if (content.platform == Platform.psv)
+                    if (content.zRIF != null)
                       ElevatedButton(
-                        onPressed: content.zRIF == null
-                            ? null
-                            : () => copyToClipboard(
-                                  context,
-                                  '${content.zRIF}',
-                                  t.zrif_copied,
-                                ),
-                        child: Text(content.zRIF == null
-                            ? t.zrif_not_available
-                            : '${t.copy} zRIF'),
+                        onPressed: () => copyToClipboard(
+                          context,
+                          '${content.zRIF}',
+                          t.zrif_copied,
+                        ),
+                        child: Text('${t.copy} zRIF'),
+                      ),
+                    if (content.rap != null)
+                      ElevatedButton(
+                        onPressed: () => copyToClipboard(
+                          context,
+                          '${content.rap}',
+                          t.rap_copied,
+                        ),
+                        child: Text('${t.copy} RAP'),
                       ),
                   ],
                 ),

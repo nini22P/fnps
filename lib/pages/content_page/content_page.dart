@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
@@ -70,8 +71,9 @@ class ContentPage extends HookWidget {
         [downloads.values, contents]);
 
     final currentCompletedDownloads = useMemoized(
-        () => currentDownloads
-            .where((item) => item.extractStatus == ExtractStatus.completed),
+        () => currentDownloads.where((item) =>
+            item.extractStatus == ExtractStatus.completed ||
+            item.extractStatus == ExtractStatus.notNeeded),
         [currentDownloads]);
 
     bool isDownloading = useMemoized(
@@ -81,7 +83,9 @@ class ContentPage extends HookWidget {
 
     final incompletedDownloads = useMemoized(
         () => currentDownloads
-            .where((item) => item.extractStatus != ExtractStatus.completed)
+            .whereNot((item) =>
+                item.extractStatus == ExtractStatus.completed ||
+                item.extractStatus == ExtractStatus.notNeeded)
             .toList(),
         [currentDownloads]);
 

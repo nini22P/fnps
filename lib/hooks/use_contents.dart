@@ -11,12 +11,14 @@ List<Content> useContents(Content content, String? hmacKey) {
   final pspBox = Hive.box<Content>(pspBoxName);
   final psmBox = Hive.box<Content>(psmBoxName);
   final psxBox = Hive.box<Content>(psxBoxName);
+  final ps3Box = Hive.box<Content>(ps3BoxName);
 
   final contents = useMemoized(() => [
         ...psvBox.values,
         ...pspBox.values,
         ...psmBox.values,
         ...psxBox.values,
+        ...ps3Box.values
       ]);
 
   final titleID = useMemoized(() => content.titleID);
