@@ -66,7 +66,7 @@ class ContentList extends HookWidget {
             spacing: 4,
             runSpacing: 4,
             children: [
-              CustomBadge(text: content.category.name),
+              CustomBadge(text: content.category.name, tertiary: true),
               if (content.pkgDirectLink != null)
                 CustomBadge(text: fileSizeConv(content.fileSize)!),
               if (downloadItem != null &&

@@ -48,14 +48,14 @@ android {
         }
     }
 
-    splits {
-        abi {
-            enable true
-            reset()
-            include 'arm64-v8a', 'armeabi-v7a'
-            universalApk true
-        }
-    }
+    // splits {
+    //     abi {
+    //         enable true
+    //         reset()
+    //         include 'arm64-v8a', 'armeabi-v7a'
+    //         universalApk true
+    //     }
+    // }
 
     buildTypes {
         release {

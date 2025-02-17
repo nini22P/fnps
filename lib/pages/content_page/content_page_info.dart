@@ -91,49 +91,91 @@ class ContentPageInfo extends HookWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
+                      spacing: 4,
                       children: [
                         Text(
                           content.name,
-                          style: const TextStyle(
-                            fontSize: 24.0,
-                          ),
+                          style: const TextStyle(fontSize: 24.0),
                         ),
                         if (content.originalName != null)
                           Text('${content.originalName}'),
-                        const SizedBox(height: 4),
                         Wrap(
                           spacing: 4,
                           runSpacing: 4,
                           children: [
+                            CustomBadge(
+                              text: content.platform.name,
+                              primary: true,
+                            ),
+                            CustomBadge(
+                                text: content.category.name, tertiary: true),
                             if (content.region != null)
-                              CustomBadge(
-                                  text: content.region!.name, primary: true),
-                            CustomBadge(text: content.platform.name),
-                            CustomBadge(text: content.category.name),
+                              CustomBadge(text: content.region!.name),
                             CustomBadge(text: content.titleID),
                             if (content.version != null ||
                                 update?.version != null)
                               CustomBadge(
-                                text:
-                                    update?.version ?? content.version ?? 'N/A',
+                                text: update?.version != null
+                                    ? '${update?.version}'
+                                    : (content.version!.contains('.')
+                                        ? '${content.version}'
+                                        : '${content.version}.00'),
                               ),
-                            if (content.fileSize != null &&
-                                content.fileSize != 0)
-                              CustomBadge(
-                                  text: fileSizeConv(content.fileSize)!),
+                            if (size != 0)
+                              CustomBadge(text: fileSizeConv(size)!),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        if (content.version != null || update?.version != null)
-                          Text(
-                              '${t.version}: ${update?.version ?? content.version}'),
-                        if (content.fileSize != 0)
-                          Text('${t.size}: ${fileSizeConv(size)}'),
                         if (content.contentID != null)
-                          Text('${t.content_id}: ${content.contentID}'),
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: '${t.content_id}: ',
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: '${content.contentID}',
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         if (content.lastModificationDate != null)
-                          Text(
-                              '${t.last_modification_date}: ${content.lastModificationDate}')
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: '${t.last_modification_date}: ',
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: '${content.lastModificationDate}',
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ],

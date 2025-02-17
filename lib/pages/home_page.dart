@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:fnps/models/content.dart';
 import 'package:fnps/pages/contents.dart';
 import 'package:fnps/pages/downloads.dart';
 import 'package:fnps/pages/settings.dart';
@@ -21,7 +20,7 @@ class HomePage extends HookWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
-    void navigateToPage(int index, {bool animate = false}) {
+    void navigateToPage(int index, {bool animate = true}) {
       animate
           ? pageController.animateToPage(
               index,
@@ -47,10 +46,6 @@ class HomePage extends HookWidget {
                   label: Text(t.browse),
                 ),
                 NavigationRailDestination(
-                  icon: const Icon(Icons.palette),
-                  label: Text(t.theme),
-                ),
-                NavigationRailDestination(
                   icon: const Icon(Icons.download),
                   label: Text(t.download),
                 ),
@@ -68,14 +63,7 @@ class HomePage extends HookWidget {
                 selectedIndex.value = index;
               },
               children: [
-                Contents(
-                  categories: const [Category.game, Category.demo],
-                  navigateToPage: navigateToPage,
-                ),
-                Contents(
-                  categories: const [Category.theme],
-                  navigateToPage: navigateToPage,
-                ),
+                Contents(navigateToPage: navigateToPage),
                 const Downloads(),
                 const Settings(),
               ],
@@ -86,7 +74,6 @@ class HomePage extends HookWidget {
       bottomNavigationBar: !isMobile
           ? null
           : BottomNavigationBar(
-              type: BottomNavigationBarType.fixed,
               currentIndex: selectedIndex.value,
               onTap: (index) {
                 selectedIndex.value = index;
@@ -96,10 +83,6 @@ class HomePage extends HookWidget {
                 BottomNavigationBarItem(
                   icon: const Icon(Icons.apps),
                   label: t.browse,
-                ),
-                BottomNavigationBarItem(
-                  icon: const Icon(Icons.palette),
-                  label: t.theme,
                 ),
                 BottomNavigationBarItem(
                   icon: const Icon(Icons.download),

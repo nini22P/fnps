@@ -1,5 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fnps/utils/content_info.dart';
 import 'package:fnps/utils/logger.dart';
 import 'package:fnps/utils/open_explorer.dart';
 import 'package:fnps/widgets/custom_badge.dart';
@@ -87,23 +89,37 @@ class Downloads extends HookWidget {
               .toInt();
 
           return ListTile(
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: CachedNetworkImage(
+                  imageUrl: getContentIcon(content, size: 96) ?? '',
+                  fit: BoxFit.contain,
+                  placeholder: (context, url) => const SizedBox(
+                    child: Center(child: Icon(Icons.gamepad)),
+                  ),
+                  errorWidget: (context, url, error) =>
+                      const Icon(Icons.gamepad),
+                ),
+              ),
+            ),
             title: Text(content.name),
-            subtitle: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
+            subtitle: Wrap(
+              spacing: 4,
+              runSpacing: 4,
               children: [
-                const SizedBox(width: 4),
+                CustomBadge(text: content.platform.name),
+                CustomBadge(text: content.titleID),
                 CustomBadge(
                     text: incompletedDownloads.isEmpty
                         ? '${fileSizeConv(currentDownloadSize)}'
                         : '${fileSizeConv(currentDownloadSize)} / ${fileSizeConv(allDownloadSize)}'),
-                const SizedBox(width: 4),
                 CustomBadge(
                     text: currentCompletedDownloads.length ==
                             currentDownloads.length
                         ? '${currentCompletedDownloads.length}'
                         : '${currentCompletedDownloads.length} / ${currentDownloads.length}'),
-                if (isExtracting && incompletedDownloads.isEmpty)
-                  const SizedBox(width: 4),
                 if (isExtracting && incompletedDownloads.isEmpty)
                   CustomBadge(text: t.extracting),
               ],
@@ -121,23 +137,26 @@ class Downloads extends HookWidget {
                         onPressed: () => downloader.add(incompletedDownloads
                             .map((e) => e.content)
                             .toList())),
-              IconButton(
-                tooltip: t.open_in_folder,
-                icon: const Icon(Icons.folder_open),
-                onPressed: () async {
-                  final result =
-                      await openExplorer(dir: currentDownloads[0].directory);
-                  if (!result && context.mounted) {
-                    logger('Could not open directory');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(t.cannot_open_in_folder)));
-                  }
-                },
+              PopupMenuButton(
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    child: Text(t.open_in_folder),
+                    onTap: () async {
+                      final result = await openExplorer(
+                          dir: currentDownloads[0].directory);
+                      if (!result && context.mounted) {
+                        logger('Could not open directory');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(t.cannot_open_in_folder)));
+                      }
+                    },
+                  ),
+                  PopupMenuItem(
+                    child: Text(t.delete),
+                    onTap: () => downloader.remove([content]),
+                  ),
+                ],
               ),
-              IconButton(
-                  tooltip: t.delete,
-                  icon: const Icon(Icons.delete),
-                  onPressed: () => downloader.remove(contents)),
             ]),
             onTap: () {
               Navigator.pushNamed(context, '/content',

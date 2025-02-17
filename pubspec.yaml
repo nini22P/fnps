@@ -1,7 +1,7 @@
 name: fnps
 description: "Flutter NoPayStation client"
 publish_to: 'none'
-version: 1.2.4+3
+version: 1.0.0+0
 
 environment:
   sdk: ^3.5.3
@@ -43,6 +43,8 @@ dependencies:
     git:
       url: https://github.com/nini22P/open_file_manager
       ref: main
+  spring_bottom_sheet: ^0.0.3
+  dynamic_color: ^1.7.0
 
 dev_dependencies:
   flutter_test:

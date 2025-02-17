@@ -270,6 +270,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
+  dynamic_color:
+    dependency: "direct main"
+    description:
+      name: dynamic_color
+      sha256: eae98052fa6e2826bdac3dd2e921c6ce2903be15c6b7f8b6d8a5d49b5086298d
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.7.0"
   fake_async:
     dependency: transitive
     description:
@@ -904,6 +912,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.0"
+  spring_bottom_sheet:
+    dependency: "direct main"
+    description:
+      name: spring_bottom_sheet
+      sha256: "42f8828679bb8b47a5a87db4247128d6173f79fdbfae8d0d0410d42f52a5c4ca"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.3"
   sprintf:
     dependency: transitive
     description:

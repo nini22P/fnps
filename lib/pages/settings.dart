@@ -51,7 +51,6 @@ class Settings extends HookWidget {
   Widget build(BuildContext context) {
     final t = getLocalizations(context);
     final configProvider = Provider.of<ConfigProvider>(context);
-    Config config = configProvider.config;
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
@@ -64,7 +63,7 @@ class Settings extends HookWidget {
     final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
 
     final TextEditingController hmacKeyController =
-        TextEditingController(text: config.hmacKey);
+        TextEditingController(text: configProvider.config.hmacKey);
 
     final sourceTileData = useState([
       SourceTile(
@@ -206,7 +205,7 @@ class Settings extends HookWidget {
           break;
       }
 
-      final filteredSources = [...config.sources]
+      final filteredSources = [...configProvider.config.sources]
           .whereNot((source) =>
               source.platform == platform && source.category == category)
           .toList();
@@ -242,7 +241,7 @@ class Settings extends HookWidget {
     }
 
     Source? getSource(Platform platform, Category category) =>
-        config.sources.firstWhereOrNull((source) =>
+        configProvider.config.sources.firstWhereOrNull((source) =>
             source.platform == platform && source.category == category);
 
     Future<void> syncSource(SourceTile tile, String url) async {
@@ -365,46 +364,61 @@ class Settings extends HookWidget {
 
     ListTile buildSourceTile(SourceTile tile) {
       final source = getSource(tile.platform, tile.category);
-      final updateTime = source?.updateTime
-          ?.toLocal()
-          .toIso8601String()
-          .replaceAll('T', ' ')
-          .split('.')
-          .first;
       final url = source?.url;
-      final isSyncing =
-          tile.status == SyncStatus.syncing || tile.status == SyncStatus.queue;
+
+      final contents = [
+        ...psvBox.values,
+        ...pspBox.values,
+        ...psmBox.values,
+        ...psxBox.values,
+        ...ps3Box.values,
+      ];
+
+      final contentsLength = contents
+          .where((content) =>
+              content.platform == tile.platform &&
+              content.category == tile.category)
+          .length;
+
       return ListTile(
         title: Text(tile.title),
-        subtitle: Row(children: [
-          CustomBadge(text: url == null ? t.local : t.remote),
-          if (updateTime == null && !isSyncing) const SizedBox(width: 4),
-          if (updateTime == null && !isSyncing)
-            CustomBadge(text: url == null ? t.not_added : t.not_syncing),
-          if (isSyncing) const SizedBox(width: 4),
-          if (isSyncing)
-            CustomBadge(
-                text:
-                    tile.status == SyncStatus.syncing ? t.syncing : t.queuing),
-          const SizedBox(width: 6),
-          Expanded(
+        subtitle: Row(
+          spacing: 4,
+          children: [
+            CustomBadge(text: url == null ? t.local : t.remote),
+            if (contentsLength > 0)
+              CustomBadge(text: contentsLength.toString()),
+            if (tile.status == SyncStatus.done && contentsLength == 0)
+              CustomBadge(text: url == null ? t.not_added : t.not_syncing),
+            if (tile.status == SyncStatus.syncing) CustomBadge(text: t.syncing),
+            if (tile.status == SyncStatus.queue) CustomBadge(text: t.queuing),
+            Expanded(
               child: Text(
-            !isMobile && url != null ? url : '',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          )),
-          if (!isMobile && url != null) const SizedBox(width: 16),
-          if (updateTime != null) Text(updateTime),
-        ]),
+                !isMobile && url != null ? url : '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (source?.updateTime != null && contentsLength > 0)
+              Text(source!.updateTime!
+                  .toLocal()
+                  .toIso8601String()
+                  .replaceAll('T', ' ')
+                  .split('.')
+                  .first),
+          ],
+        ),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
           if (url != null)
             IconButton(
               tooltip: t.sync,
               icon: const Icon(Icons.sync),
-              onPressed: isSyncing ? null : () => syncSource(tile, url),
+              onPressed: tile.status != SyncStatus.done
+                  ? null
+                  : () => syncSource(tile, url),
             ),
         ]),
-        onTap: isSyncing || source == null
+        onTap: tile.status != SyncStatus.done || source == null
             ? null
             : () async {
                 final result =
@@ -465,7 +479,9 @@ class Settings extends HookWidget {
             const Divider(),
             ListTile(
               title: Text(t.hmac_key),
-              subtitle: config.hmacKey == null ? null : Text(config.hmacKey!),
+              subtitle: configProvider.config.hmacKey == null
+                  ? null
+                  : Text(configProvider.config.hmacKey!),
               onTap: () => showDialog<String>(
                 context: context,
                 builder: (BuildContext context) => AlertDialog(

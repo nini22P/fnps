@@ -1,7 +1,9 @@
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/services.dart';
 import 'package:fnps/globals.dart' as globals;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fnps/theme.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -72,29 +74,41 @@ class FNPS extends HookWidget {
           statusBarColor: Colors.transparent,
           systemNavigationBarColor: Colors.transparent,
         ));
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       }
       return null;
     }, []);
 
-    return MaterialApp(
-      title: 'FNPS',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: const HomePage(title: 'FNPS'),
-      onGenerateRoute: (settings) {
-        if (settings.name == '/content') {
-          final props = settings.arguments as ContentPageProps;
-          return MaterialPageRoute(
-            builder: (context) {
-              return ContentPage(props: props);
-            },
-          );
-        }
-        return null;
+    return DynamicColorBuilder(
+      builder: (
+        ColorScheme? lightDynamic,
+        ColorScheme? darkDynamic,
+      ) {
+        final theme = getTheme(
+          context: context,
+          lightDynamic: lightDynamic,
+          darkDynamic: darkDynamic,
+        );
+
+        return MaterialApp(
+          title: 'FNPS',
+          theme: theme.light,
+          darkTheme: theme.dark,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const HomePage(title: 'FNPS'),
+          onGenerateRoute: (settings) {
+            if (settings.name == '/content') {
+              final props = settings.arguments as ContentPageProps;
+              return MaterialPageRoute(
+                builder: (context) {
+                  return ContentPage(props: props);
+                },
+              );
+            }
+            return null;
+          },
+        );
       },
     );
   }

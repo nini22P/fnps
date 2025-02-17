@@ -109,7 +109,7 @@ class Config with _$Config {
       ),
     ],
     platforms: [Platform.psv, Platform.psp],
-    categories: [Category.game, Category.dlc, Category.theme, Category.demo],
+    categories: [Category.game],
     regions: Region.values,
     hmacKey: Env().hmacKey,
     sortBy: SortBy.name,
