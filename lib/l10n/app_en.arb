@@ -72,6 +72,8 @@
   "update_link_copied": "Update link copied",
   "update_list": "Update list",
   "update_size": "Update size",
+  "use_built_in_url": "Use built-in address",
+  "use_custom_url": "Use custom url",
   "version": "Version",
   "zrif_copied": "zRIF copied",
   "zrif_not_available": "zRIF not available"

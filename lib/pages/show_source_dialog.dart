@@ -40,7 +40,7 @@ class SourceDialog extends HookWidget {
             children: [
               if (initUrl != null)
                 _buildRadioTile(
-                  title: '使用内置地址',
+                  title: t.use_built_in_url,
                   value: initUrl,
                   groupValue: selectedUrl.value,
                   onChanged: (value) {
@@ -49,7 +49,7 @@ class SourceDialog extends HookWidget {
                   },
                 ),
               _buildRadioTile(
-                title: '使用自定义地址',
+                title: t.use_custom_url,
                 value: 'custom',
                 groupValue: selectedUrl.value,
                 onChanged: (value) {
@@ -58,7 +58,7 @@ class SourceDialog extends HookWidget {
                 },
               ),
               _buildRadioTile(
-                title: '选择本地文件',
+                title: t.select_local_file,
                 value: null,
                 groupValue: selectedUrl.value,
                 onChanged: (value) {

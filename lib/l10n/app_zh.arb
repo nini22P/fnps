@@ -72,6 +72,8 @@
   "update_link_copied": "已复制更新链接",
   "update_list": "更新列表",
   "update_size": "更新大小",
+  "use_built_in_url": "使用内置地址",
+  "use_custom_url": "使用自定义地址",
   "version": "版本",
   "zrif_copied": "已复制 zRIF",
   "zrif_not_available": "未提供 zRIF"

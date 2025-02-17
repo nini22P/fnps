@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:saf_stream/saf_stream.dart';
 import 'package:saf_util/saf_util.dart';
 import 'package:saf_util/saf_util_platform_interface.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:fnps/hive/hive_box_names.dart';
 import 'package:fnps/models/config.dart';
 import 'package:fnps/provider/config_provider.dart';
@@ -51,6 +52,11 @@ class Settings extends HookWidget {
   Widget build(BuildContext context) {
     final t = getLocalizations(context);
     final configProvider = Provider.of<ConfigProvider>(context);
+
+    final getPackageInfo =
+        useMemoized(() async => await PackageInfo.fromPlatform());
+
+    final packageInfo = useFuture(getPackageInfo).data;
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
@@ -516,6 +522,10 @@ class Settings extends HookWidget {
               title: const Text('FNPS'),
               subtitle: const Text('Flutter NoPayStation client'),
               onTap: () => launchURL('https://github.com/nini22P/fnps'),
+            ),
+            ListTile(
+              title: Text(t.version),
+              subtitle: Text('${packageInfo?.version}'),
             ),
           ],
         ),
