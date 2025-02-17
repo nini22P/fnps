@@ -101,6 +101,7 @@ class Downloads extends HookWidget {
                   ),
                   errorWidget: (context, url, error) =>
                       const Icon(Icons.gamepad),
+                  errorListener: (_) {},
                 ),
               ),
             ),

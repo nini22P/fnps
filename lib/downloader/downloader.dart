@@ -318,6 +318,7 @@ class Downloader {
           );
         } else {
           if (content.platform == Platform.ps3 &&
+              content.category != Category.update &&
               content.rap != null &&
               content.rap!.isNotEmpty) {
             await downloadRAP(content);

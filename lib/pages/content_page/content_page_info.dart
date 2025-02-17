@@ -83,6 +83,7 @@ class ContentPageInfo extends HookWidget {
                                   ),
                                   errorWidget: (context, url, error) =>
                                       const Icon(Icons.gamepad),
+                                  errorListener: (_) {},
                                 ),
                               ),
                       ),
@@ -251,6 +252,7 @@ class ContentPageInfo extends HookWidget {
                                         ),
                                         errorWidget: (context, url, error) =>
                                             const Icon(Icons.error),
+                                        errorListener: (_) {},
                                       ),
                                     ),
                                   ),

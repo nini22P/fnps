@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/services.dart';
 import 'package:fnps/globals.dart' as globals;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:fnps/theme.dart';
+import 'package:fnps/utils/my_http_overrides.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +23,8 @@ import 'package:fnps/utils/platform.dart';
 import 'package:fnps/utils/request_storage_permission.dart';
 
 Future<void> main() async {
+  HttpOverrides.global = MyHttpOverrides();
+
   await dotenv.load(fileName: '.env');
 
   final configPath = await getConfigPath();

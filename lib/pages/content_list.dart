@@ -56,6 +56,7 @@ class ContentList extends HookWidget {
                   child: Center(child: Icon(Icons.gamepad)),
                 ),
                 errorWidget: (context, url, error) => const Icon(Icons.gamepad),
+                errorListener: (_) {},
               ),
             ),
           ),

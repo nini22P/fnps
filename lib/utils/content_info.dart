@@ -41,6 +41,9 @@ String getUpdateXmlLink(String titleID, String hmacKey) {
   return "http://gs-sec.ww.np.dl.playstation.net/pl/np/$titleID/$hash/$titleID-ver.xml";
 }
 
+String getPS3UpdateXmlLink(String titleID) =>
+    'https://a0.ww.np.dl.playstation.net/tpl/np/$titleID/$titleID-ver.xml';
+
 class UpdateInfo {
   final String version;
   final int size;
@@ -59,9 +62,11 @@ class UpdateInfo {
 
 Future<UpdateInfo?> getUpdateInfo(Content content, String hmacKey) async {
   final titleID = content.titleID;
-  var xmlLink = getUpdateXmlLink(titleID, hmacKey);
+  var xmlLink = content.platform == Platform.ps3
+      ? getPS3UpdateXmlLink(titleID)
+      : getUpdateXmlLink(titleID, hmacKey);
 
-  logger(xmlLink);
+  logger('Update xml url: $xmlLink');
 
   try {
     final data = await DefaultCacheManager().getSingleFile(xmlLink);
@@ -73,7 +78,7 @@ Future<UpdateInfo?> getUpdateInfo(Content content, String hmacKey) async {
     }
 
     if (document.findElements('titlepatch').isNotEmpty) {
-      final titlePatch = document.findAllElements('titlepatch').first;
+      final titlePatch = document.findElements('titlepatch').first;
       final tag = titlePatch.findElements('tag').first;
 
       final package = tag.findElements('package').last;
@@ -83,8 +88,10 @@ Future<UpdateInfo?> getUpdateInfo(Content content, String hmacKey) async {
       final url = package.getAttribute('url');
       final sha1sum = package.getAttribute('sha1sum');
 
-      final changeinfo = package.findElements('changeinfo').first;
-      final changeInfoUrl = changeinfo.getAttribute('url');
+      final changeinfo = package.findElements('changeinfo').isNotEmpty
+          ? package.findElements('changeinfo').first
+          : null;
+      final changeInfoUrl = changeinfo?.getAttribute('url');
 
       if (version == null || size == null || url == null || sha1sum == null) {
         return null;
@@ -99,6 +106,7 @@ Future<UpdateInfo?> getUpdateInfo(Content content, String hmacKey) async {
       );
     }
   } catch (e) {
+    logger('getUpdateInfo error', error: e);
     return null;
   }
   return null;
