@@ -6,18 +6,17 @@ import 'package:fnps/utils/logger.dart';
 import 'package:fnps/utils/path.dart';
 
 Future<bool> downloadRAP(Content content) async {
-  if (content.rap == null ||
-      content.rap!.isEmpty ||
-      content.contentID == null) {
+  final contentID = content.contentID;
+  final rap = content.rap;
+  if (contentID == null || rap == null) {
     return false;
   }
 
   final List<String> downloadsPath = await getDownloadsPath();
   final List<String> directory = [...downloadsPath, content.titleID];
 
-  final rapUrl =
-      'https://nopaystation.com/tools/rap2file/${content.contentID}/${content.rap}';
-  final path = pathJoin([...directory, '${content.contentID}.rap']);
+  final rapUrl = getRAPUrl(contentID, rap);
+  final path = pathJoin([...directory, '$contentID.rap']);
   logger('Downloading rap: $rapUrl');
   Response response = await Dio().download(rapUrl, path);
   if (response.statusCode == HttpStatus.ok) {
@@ -26,3 +25,6 @@ Future<bool> downloadRAP(Content content) async {
   }
   return false;
 }
+
+String getRAPUrl(String contentID, String rap) =>
+    'https://nopaystation.com/tools/rap2file/$contentID/$rap';

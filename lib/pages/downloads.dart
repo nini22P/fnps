@@ -66,8 +66,10 @@ class Downloads extends HookWidget {
           final contents =
               currentDownloads.map((item) => item.content).toList();
 
-          final currentCompletedDownloads = currentDownloads
-              .where((item) => item.extractStatus == ExtractStatus.completed);
+          final currentCompletedDownloads = currentDownloads.where((item) => [
+                ExtractStatus.completed,
+                ExtractStatus.notNeeded
+              ].contains(item.extractStatus));
 
           bool isDownloading = currentDownloads
               .any((item) => item.downloadStatus == DownloadStatus.downloading);
@@ -76,7 +78,8 @@ class Downloads extends HookWidget {
               .any((item) => item.extractStatus == ExtractStatus.extracting);
 
           final incompletedDownloads = currentDownloads
-              .where((item) => item.downloadStatus != DownloadStatus.completed)
+              .where((item) => [ExtractStatus.queued, ExtractStatus.extracting]
+                  .contains(item.extractStatus))
               .toList();
 
           final allDownloadSize = currentDownloads

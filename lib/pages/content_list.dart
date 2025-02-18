@@ -186,6 +186,15 @@ class ContentList extends HookWidget {
                           t.zrif_copied,
                         ),
                       ),
+                    if (content.contentID != null && content.rap != null)
+                      PopupMenuItem(
+                        child: Text('${t.copy} RAP ${t.download_link}'),
+                        onTap: () => copyToClipboard(
+                          context,
+                          getRAPUrl(content.contentID!, content.rap!),
+                          t.rap_download_link_copied,
+                        ),
+                      ),
                     if (content.rap != null)
                       PopupMenuItem(
                         child: Text('${t.download} RAP ${t.file}'),

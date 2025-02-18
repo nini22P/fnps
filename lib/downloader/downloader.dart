@@ -43,7 +43,8 @@ class Downloader {
           download.copyWith(downloadStatus: DownloadStatus.paused),
         );
       } else if (download.downloadStatus == DownloadStatus.completed &&
-          download.extractStatus != ExtractStatus.completed) {
+          [ExtractStatus.queued, ExtractStatus.extracting]
+              .contains(download.extractStatus)) {
         downloadBox.put(
           download.id,
           download.copyWith(extractStatus: ExtractStatus.failed),
