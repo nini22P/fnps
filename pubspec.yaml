@@ -39,10 +39,7 @@ dependencies:
   saf_stream: ^0.11.1
   collection: ^1.19.0
   open_dir: ^0.0.2+1
-  open_file_manager:
-    git:
-      url: https://github.com/nini22P/open_file_manager
-      ref: main
+  open_file_manager: ^2.0.1
   spring_bottom_sheet: ^0.0.3
   dynamic_color: ^1.7.0
   package_info_plus: ^8.1.1

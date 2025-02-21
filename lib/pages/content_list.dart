@@ -61,7 +61,7 @@ class ContentList extends HookWidget {
             ),
           ),
           title: Text(content.category == Category.update
-              ? '${content.name} ${content.version}'
+              ? '${content.name}${content.version != null ? ' ${content.version}' : ''}'
               : content.name),
           subtitle: Wrap(
             spacing: 4,
@@ -136,6 +136,7 @@ class ContentList extends HookWidget {
                         case ExtractStatus.extracting:
                           return const SizedBox();
                         case ExtractStatus.completed:
+                        case ExtractStatus.notNeeded:
                           return IconButton(
                             tooltip: t.delete_downloaded_pkg,
                             icon: const Icon(Icons.delete),
@@ -146,8 +147,6 @@ class ContentList extends HookWidget {
                             icon: const Icon(Icons.restart_alt),
                             onPressed: () => downloader.add([content]),
                           );
-                        case ExtractStatus.notNeeded:
-                          return const SizedBox();
                       }
                   }
                 }(),

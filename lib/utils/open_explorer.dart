@@ -17,7 +17,7 @@ Future<bool> openExplorer({
   } else if (isAndroid || isIOS) {
     return await openFileManager(
       androidConfig: AndroidConfig(
-        folderType: FolderType.other,
+        folderType: AndroidFolderType.other,
         folderPath: pathJoin(dir),
       ),
     );

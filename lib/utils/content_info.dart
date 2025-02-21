@@ -21,7 +21,7 @@ String? getContentIcon(Content content, {int? size}) => content.contentID ==
     ? null
     : "$baseApiUrl/${regionMap[content.contentID?.substring(0, 2)]}/999/${content.contentID}/image${size == null ? '' : '?w=$size&h=$size'}";
 
-String getUpdateXmlLink(String titleID, String hmacKey) {
+String getPSVUpdateXmlLink(String titleID, String hmacKey) {
   List<int> binary = [];
   String key = "0x$hmacKey";
 
@@ -41,7 +41,7 @@ String getUpdateXmlLink(String titleID, String hmacKey) {
   return "http://gs-sec.ww.np.dl.playstation.net/pl/np/$titleID/$hash/$titleID-ver.xml";
 }
 
-String getPS3UpdateXmlLink(String titleID) =>
+String getUpdateXmlLink(String titleID) =>
     'https://a0.ww.np.dl.playstation.net/tpl/np/$titleID/$titleID-ver.xml';
 
 class UpdateInfo {
@@ -62,9 +62,9 @@ class UpdateInfo {
 
 Future<UpdateInfo?> getUpdateInfo(Content content, String hmacKey) async {
   final titleID = content.titleID;
-  var xmlLink = content.platform == Platform.ps3
-      ? getPS3UpdateXmlLink(titleID)
-      : getUpdateXmlLink(titleID, hmacKey);
+  var xmlLink = content.platform == Platform.psv
+      ? getPSVUpdateXmlLink(titleID, hmacKey)
+      : getUpdateXmlLink(titleID);
 
   logger('Update xml url: $xmlLink');
 
