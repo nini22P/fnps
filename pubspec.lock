@@ -914,14 +914,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.1"
-  spring_bottom_sheet:
-    dependency: "direct main"
-    description:
-      name: spring_bottom_sheet
-      sha256: "42f8828679bb8b47a5a87db4247128d6173f79fdbfae8d0d0410d42f52a5c4ca"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.3"
   sprintf:
     dependency: transitive
     description:

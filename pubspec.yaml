@@ -1,7 +1,7 @@
 name: fnps
 description: "Flutter NoPayStation client"
 publish_to: 'none'
-version: 1.0.2+0
+version: 1.0.3+0
 
 environment:
   sdk: ^3.5.3
@@ -40,7 +40,6 @@ dependencies:
   collection: ^1.19.0
   open_dir: ^0.0.2+1
   open_file_manager: ^2.0.1
-  spring_bottom_sheet: ^0.0.3
   dynamic_color: ^1.7.0
   package_info_plus: ^8.1.1
 

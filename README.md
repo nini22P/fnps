@@ -27,19 +27,15 @@ HMAC_KEY=
 
 ### Android
 
-Open shell, create `key.jks` put `android/` folder
+Open `android/` folder on Android studio, select  `build` -> `Generate Signed Bundle or APK` -> `APK`, create a keystore on `android/` folder.
 
-```
-keytool -genkeypair -v -keystore key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias alias
-```
-
-And create `key.properties` file on `android/` folder
+And create `key.properties` file on `android/` folder.
 
 ```
 storePassword=<paaaword>
 keyPassword=<password>
 keyAlias=<alias>
-storeFile=D:/xxx/fnps/android/key.jks
+storeFile=D:/xxx/fnps/android/keystore.jks
 ```
 
 Open shell, run
