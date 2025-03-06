@@ -8,6 +8,10 @@ import 'package:fnps/utils/pkg.dart';
 import 'package:path/path.dart' as p;
 
 Future<List<String>> getAppPath() async {
+  if (isAndroid) {
+    await getExternalStorageDirectory();
+  }
+
   final String dir = isDesktop
       ? await getExecutableDirPath()
       : (await getExternalStorageDirectory())!.path;

@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:fnps/pages/contents_filter.dart';
 import 'package:fnps/pages/popup.dart';
+import 'package:fnps/utils/platform.dart';
 import 'package:fnps/utils/request_storage_permission.dart';
 import 'package:fnps/widgets/custom_badge.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:fnps/globals.dart' as globals;
 import 'package:fnps/hive/hive_box_names.dart';
 import 'package:fnps/models/config.dart';
 import 'package:fnps/models/content.dart';
@@ -103,11 +103,21 @@ class Contents extends HookWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
-    final refreshValue = useState(0);
-    refresh() => refreshValue.value++;
+    final storagePermissionStatus =
+        useState<PermissionStatus>(PermissionStatus.granted);
+
+    useEffect(() {
+      () async {
+        storagePermissionStatus.value = isAndroid
+            ? await isAndroid11OrHigher()
+                ? await Permission.manageExternalStorage.status
+                : await Permission.storage.status
+            : PermissionStatus.granted;
+      }();
+      return null;
+    }, []);
 
     return Scaffold(
-      key: ValueKey(refreshValue.value),
       appBar: AppBar(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -158,22 +168,20 @@ class Contents extends HookWidget {
         forceMaterialTransparency: true,
       ),
       body: contents.isEmpty ||
-              globals.storagePermissionStatus != PermissionStatus.granted
+              storagePermissionStatus.value != PermissionStatus.granted
           ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (globals.storagePermissionStatus !=
-                      PermissionStatus.granted)
+                  if (storagePermissionStatus.value != PermissionStatus.granted)
                     ElevatedButton(
                       onPressed: () async {
-                        await requestStoragePermission();
-                        refresh();
+                        storagePermissionStatus.value =
+                            await requestStoragePermission();
                       },
                       child: Text(t.grant_storage_permission),
                     ),
-                  if (globals.storagePermissionStatus !=
-                      PermissionStatus.granted)
+                  if (storagePermissionStatus.value != PermissionStatus.granted)
                     const SizedBox(height: 16),
                   if (contents.isEmpty)
                     ElevatedButton(

@@ -1,13 +1,11 @@
 import 'dart:io';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/services.dart';
-import 'package:fnps/globals.dart' as globals;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:fnps/theme.dart';
 import 'package:fnps/utils/my_http_overrides.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -20,7 +18,6 @@ import 'package:fnps/pages/home_page.dart';
 import 'package:fnps/downloader/downloader.dart';
 import 'package:fnps/utils/path.dart';
 import 'package:fnps/utils/platform.dart';
-import 'package:fnps/utils/request_storage_permission.dart';
 
 Future<void> main() async {
   HttpOverrides.global = MyHttpOverrides();
@@ -61,17 +58,6 @@ class FNPS extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    useEffect(() {
-      () async {
-        globals.storagePermissionStatus = isAndroid
-            ? await isAndroid11OrHigher()
-                ? await Permission.manageExternalStorage.status
-                : await Permission.storage.status
-            : PermissionStatus.granted;
-      }();
-      return null;
-    }, []);
-
     useEffect(() {
       if (isAndroid || isIOS) {
         SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(

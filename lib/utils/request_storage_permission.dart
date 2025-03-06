@@ -1,25 +1,15 @@
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:fnps/globals.dart' as globals;
 import 'package:permission_handler/permission_handler.dart';
 
-Future<void> requestStoragePermission() async {
+Future<PermissionStatus> requestStoragePermission() async {
   if (!Platform.isAndroid) {
-    return;
+    return PermissionStatus.granted;
   }
-
-  if (globals.storagePermissionStatus != PermissionStatus.granted) {
-    if (await isAndroid11OrHigher()) {
-      globals.storagePermissionStatus =
-          await Permission.manageExternalStorage.request();
-    } else {
-      globals.storagePermissionStatus = await Permission.storage.request();
-      if (globals.storagePermissionStatus != PermissionStatus.granted) {
-        return await requestStoragePermission();
-      } else {
-        return;
-      }
-    }
+  if (await isAndroid11OrHigher()) {
+    return await Permission.manageExternalStorage.request();
+  } else {
+    return await Permission.storage.request();
   }
 }
 

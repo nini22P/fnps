@@ -21,7 +21,6 @@ import 'package:fnps/provider/config_provider.dart';
 import 'package:fnps/models/content.dart';
 import 'package:fnps/utils/get_localizations.dart';
 import 'package:fnps/utils/platform.dart';
-import 'package:fnps/utils/request_storage_permission.dart';
 import 'package:fnps/utils/tsv_to_contents.dart';
 import 'package:fnps/utils/uri.dart';
 
@@ -337,7 +336,6 @@ class Settings extends HookWidget {
       String? content;
 
       if (isAndroid) {
-        await requestStoragePermission();
         SafDocumentFile? file = await SafUtil().pickFile(mimeTypes: [
           'text/tab-separated-values',
           'text/comma-separated-values',
