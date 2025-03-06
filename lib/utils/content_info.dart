@@ -84,9 +84,19 @@ Future<UpdateInfo?> getUpdateInfo(Content content, String hmacKey) async {
       final package = tag.findElements('package').last;
 
       final version = package.getAttribute('version');
-      final size = int.tryParse(package.getAttribute('size') ?? '0');
-      final url = package.getAttribute('url');
-      final sha1sum = package.getAttribute('sha1sum');
+      int? size = int.tryParse(package.getAttribute('size') ?? '0');
+      String? url = package.getAttribute('url');
+      String? sha1sum = package.getAttribute('sha1sum');
+
+      final hybridPackage = package.findElements('hybrid_package').isNotEmpty
+          ? package.findElements('hybrid_package').first
+          : null;
+
+      if (hybridPackage != null) {
+        size = int.tryParse(hybridPackage.getAttribute('size') ?? '0');
+        url = hybridPackage.getAttribute('url');
+        sha1sum = hybridPackage.getAttribute('sha1sum');
+      }
 
       final changeinfo = package.findElements('changeinfo').isNotEmpty
           ? package.findElements('changeinfo').first
