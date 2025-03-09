@@ -157,7 +157,8 @@ class Downloads extends HookWidget {
                   ),
                   PopupMenuItem(
                     child: Text(t.delete),
-                    onTap: () => downloader.remove([content]),
+                    onTap: () => downloader.remove(
+                        currentDownloads.map((e) => e.content).toList()),
                   ),
                 ],
               ),
