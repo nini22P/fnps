@@ -322,7 +322,6 @@ class Downloader {
               ? false
               : true,
           zRIF: content.zRIF,
-          delete: deletePkgAfterUnpacking,
         );
 
         if (result) {
@@ -332,6 +331,12 @@ class Downloader {
               extractStatus: ExtractStatus.completed,
             ),
           );
+          if (deletePkgAfterUnpacking) {
+            final file = File(pathJoin(path));
+            if (await file.exists()) {
+              await file.delete();
+            }
+          }
         } else {
           if (content.platform == Platform.ps3 &&
               content.category != Category.update &&

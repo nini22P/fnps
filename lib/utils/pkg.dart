@@ -34,7 +34,6 @@ Future<bool> pkg2zip({
   required List<String> path,
   String? zRIF,
   bool? extract,
-  bool? delete,
 }) async {
   final List<String> pkg2zipPath = await getPkg2zipPath();
   final List<String> workingPath = path.sublist(0, path.length - 1);
@@ -59,13 +58,6 @@ Future<bool> pkg2zip({
   });
 
   var exitCode = await process.exitCode;
-
-  if (delete == true && exitCode == 0) {
-    final file = File(pathJoin(path));
-    if (await file.exists()) {
-      await file.delete();
-    }
-  }
 
   return exitCode == 0;
 }
