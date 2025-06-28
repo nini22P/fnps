@@ -509,6 +509,21 @@ class Settings extends HookWidget {
                 ),
               ),
             ),
+            ListTile(
+              title: Text(t.delete_pkg_after_unpacking),
+              onTap: () => configProvider.updateConfig(
+                configProvider.config.copyWith(
+                    deletePkgAfterUnpacking:
+                        !configProvider.config.deletePkgAfterUnpacking),
+              ),
+              trailing: Switch(
+                value: configProvider.config.deletePkgAfterUnpacking,
+                onChanged: (value) => configProvider.updateConfig(
+                  configProvider.config
+                      .copyWith(deletePkgAfterUnpacking: value),
+                ),
+              ),
+            ),
             const Divider(),
             ListTile(
               title: Text(t.reset_config),

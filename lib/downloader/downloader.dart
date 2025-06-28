@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:fnps/utils/rap.dart';
@@ -301,6 +302,19 @@ class Downloader {
           logger('getPkgName failed:', error: e);
         }
 
+        bool deletePkgAfterUnpacking = false;
+
+        final configPath = await getConfigPath();
+        final filePath = pathJoin([...configPath, 'config.json']);
+        final file = File(filePath);
+
+        if (await file.exists()) {
+          String jsonString = await file.readAsString();
+          Map<String, dynamic> jsonData = jsonDecode(jsonString);
+          deletePkgAfterUnpacking =
+              jsonData['deletePkgAfterUnpacking'] ?? false;
+        }
+
         final result = await pkg2zip(
           path: path,
           extract: content.platform == Platform.psv &&
@@ -308,6 +322,7 @@ class Downloader {
               ? false
               : true,
           zRIF: content.zRIF,
+          delete: deletePkgAfterUnpacking,
         );
 
         if (result) {

@@ -26,6 +26,7 @@ class Config with _$Config {
     String? hmacKey,
     @Default(SortBy.name) SortBy sortBy,
     @Default(SortOrder.asc) SortOrder sortOrder,
+    @Default(true) bool deletePkgAfterUnpacking,
   }) = _Config;
 
   factory Config.fromJson(Map<String, dynamic> json) => _$ConfigFromJson(json);
@@ -114,6 +115,7 @@ class Config with _$Config {
     hmacKey: Env().hmacKey,
     sortBy: SortBy.name,
     sortOrder: SortOrder.asc,
+    deletePkgAfterUnpacking: true,
   );
 }
 

@@ -11,6 +11,7 @@
   "copy_update_link": "Copy update link",
   "delete": "Delete",
   "delete_downloaded_pkg": "Delete downloaded PKG",
+  "delete_pkg_after_unpacking": "Delete pkg after unpacking",
   "demo_list": "DEMO list",
   "dlc": "DLC",
   "dlc_link_copied": "DLC link copied",

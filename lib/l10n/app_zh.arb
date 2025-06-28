@@ -11,6 +11,7 @@
   "copy_update_link": "复制更新链接",
   "delete": "删除",
   "delete_downloaded_pkg": "删除已下载的 PKG",
+  "delete_pkg_after_unpacking": "解包完毕后删除 PKG",
   "demo_list": "DEMO 列表",
   "dlc": "DLC",
   "dlc_link_copied": "已复制 DLC 下载链接",
