@@ -46,3 +46,6 @@ app.*.map.json
 
 **/*.g.dart
 **/*.freezed.dart
+
+# l10n
+lib/l10n/app_localizations*.dart
