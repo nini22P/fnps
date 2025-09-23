@@ -20,13 +20,18 @@ class SourceDialog extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final t = getLocalizations(context);
-    final textController = useTextEditingController(text: source.url);
-    final selectedUrl = useState(source.url);
 
     final initSource = Config.initConfig.sources.firstWhereOrNull((item) =>
         item.platform == source.platform && item.category == source.category);
 
     final initUrl = initSource?.url;
+
+    final textController = useTextEditingController(text: source.url);
+    final selectedUrl = useState(source.url == null
+        ? null
+        : source.url == initUrl
+            ? initUrl
+            : 'custom');
 
     return AlertDialog(
       title: Text(
@@ -36,43 +41,52 @@ class SourceDialog extends HookWidget {
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 600),
         child: SingleChildScrollView(
-          child: Column(
-            children: [
-              if (initUrl != null)
-                _buildRadioTile(
-                  title: t.use_built_in_url,
-                  value: initUrl,
-                  groupValue: selectedUrl.value,
-                  onChanged: (value) {
-                    selectedUrl.value = initUrl;
-                    textController.text = initUrl;
+          child: RadioGroup<String?>(
+            groupValue: selectedUrl.value,
+            onChanged: (String? value) {
+              if (value == initUrl && initUrl != null && initUrl.isNotEmpty) {
+                selectedUrl.value = initUrl;
+                textController.text = initUrl;
+              } else {
+                selectedUrl.value = value;
+                textController.clear();
+              }
+            },
+            child: Column(
+              children: [
+                if (initUrl != null && initUrl.isNotEmpty)
+                  ListTile(
+                    title: Text(t.use_built_in_url),
+                    leading: Radio<String?>(value: initUrl),
+                    onTap: () {
+                      selectedUrl.value = initUrl;
+                      textController.text = initUrl;
+                    },
+                  ),
+                ListTile(
+                  title: Text(t.use_custom_url),
+                  leading: Radio<String?>(value: 'custom'),
+                  onTap: () {
+                    selectedUrl.value = 'custom';
+                    textController.clear();
                   },
                 ),
-              _buildRadioTile(
-                title: t.use_custom_url,
-                value: 'custom',
-                groupValue: selectedUrl.value,
-                onChanged: (value) {
-                  selectedUrl.value = 'custom';
-                  textController.clear();
-                },
-              ),
-              _buildRadioTile(
-                title: t.select_local_file,
-                value: null,
-                groupValue: selectedUrl.value,
-                onChanged: (value) {
-                  selectedUrl.value = null;
-                  textController.clear();
-                },
-              ),
-              if (selectedUrl.value != null)
-                TextFormField(
-                  autofocus: true,
-                  controller: textController,
-                  keyboardType: TextInputType.url,
+                ListTile(
+                  title: Text(t.select_local_file),
+                  leading: Radio<String?>(value: null),
+                  onTap: () {
+                    selectedUrl.value = null;
+                    textController.clear();
+                  },
                 ),
-            ],
+                if (selectedUrl.value != null)
+                  TextFormField(
+                    autofocus: true,
+                    controller: textController,
+                    keyboardType: TextInputType.url,
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -114,24 +128,6 @@ class SourceDialog extends HookWidget {
             child: Text(t.select_local_file),
           )
       ],
-    );
-  }
-
-  ListTile _buildRadioTile({
-    required String title,
-    required String? value,
-    required String? groupValue,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return ListTile(
-      title: Text(title),
-      contentPadding: const EdgeInsets.only(left: 8),
-      leading: Radio<String?>(
-        value: value,
-        groupValue: groupValue,
-        onChanged: onChanged,
-      ),
-      onTap: () => onChanged(value),
     );
   }
 }
