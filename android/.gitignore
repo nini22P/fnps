@@ -14,3 +14,6 @@ key.properties
 **/*.jks
 
 app/src/main/jniLibs
+
+build
+.kotlin

@@ -17,7 +17,7 @@ enum SortOrder {
 }
 
 @freezed
-class Config with _$Config {
+abstract class Config with _$Config {
   const factory Config({
     required List<Source> sources,
     required List<Platform> platforms,
@@ -120,7 +120,7 @@ class Config with _$Config {
 }
 
 @freezed
-class Source with _$Source {
+abstract class Source with _$Source {
   const factory Source({
     required Platform platform,
     required Category category,
