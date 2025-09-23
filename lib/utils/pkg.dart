@@ -8,6 +8,9 @@ Future<String?> getPkgName(List<String> path) async {
   final List<String> pkg2zipPath = await getPkg2zipPath();
   final List<String> workingPath = path.sublist(0, path.length - 1);
 
+  logger('pkg2zip path: ${pathJoin(pkg2zipPath)}');
+  logger('pkg path: ${pathJoin(path)}');
+
   final process = await Process.start(
     pathJoin(pkg2zipPath),
     ['-l', pathJoin(path)],

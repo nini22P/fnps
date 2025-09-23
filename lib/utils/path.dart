@@ -53,7 +53,7 @@ Future<List<String>> getPkg2zipPath() async {
           ? [...targetFolder, 'pkg2zip.exe']
           : [...targetFolder, 'pkg2zip'];
   final file = File(pathJoin(path));
-  if (!await file.exists()) {
+  if (!(await file.exists()) && !Platform.isAndroid) {
     await copyPkg2zip(path);
   }
   return path;
