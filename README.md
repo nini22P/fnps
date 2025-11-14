@@ -42,7 +42,7 @@ Open shell, run
 
 ``` shell
 flutter pub get
-flutter pub run build_runner build --delete-conflicting-outputs
+dart run build_runner build --delete-conflicting-outputs
 flutter build apk
 ```
 
@@ -50,10 +50,9 @@ flutter build apk
 
 ``` shell
 flutter pub get
-flutter pub run build_runner build --delete-conflicting-outputs
+dart run build_runner build --delete-conflicting-outputs
 flutter build windows
 ```
-
 
 ## Thanks and References
 
