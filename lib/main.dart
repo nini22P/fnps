@@ -3,6 +3,7 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fnps/downloader/aria2.dart';
 import 'package:fnps/l10n/app_localizations.dart';
 import 'package:fnps/theme.dart';
 import 'package:fnps/utils/my_http_overrides.dart';
@@ -45,6 +46,8 @@ Future<void> main() async {
 
   await Downloader.instance.init();
 
+  await startAria2();
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => ConfigProvider()..loadConfig(),
@@ -60,20 +63,19 @@ class FNPS extends HookWidget {
   Widget build(BuildContext context) {
     useEffect(() {
       if (isAndroid || isIOS) {
-        SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          systemNavigationBarColor: Colors.transparent,
-        ));
+        SystemChrome.setSystemUIOverlayStyle(
+          const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            systemNavigationBarColor: Colors.transparent,
+          ),
+        );
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       }
       return null;
     }, []);
 
     return DynamicColorBuilder(
-      builder: (
-        ColorScheme? lightDynamic,
-        ColorScheme? darkDynamic,
-      ) {
+      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
         final theme = getTheme(
           context: context,
           lightDynamic: lightDynamic,

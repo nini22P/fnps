@@ -61,4 +61,6 @@ flutter build windows
 * [mmozeiko / pkg2zip](https://github.com/mmozeiko/pkg2zip)
 * [lusid1 / pkg2zip](https://github.com/lusid1/pkg2zip)
 * [JeffreyO / pkg2zip](https://github.com/JeffreyO/pkg2zip)
-* [nabil6391/flutter_download_manager](https://github.com/nabil6391/flutter_download_manager)
+* [nabil6391 / flutter_download_manager](https://github.com/nabil6391/flutter_download_manager)
+* [aria2 / aria2](https://github.com/aria2/aria2)
+* [devgianlu / aria2-android](https://github.com/devgianlu/aria2-android)

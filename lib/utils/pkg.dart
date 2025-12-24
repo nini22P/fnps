@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/services.dart';
 import 'package:fnps/utils/logger.dart';
 import 'package:fnps/utils/path.dart';
 
@@ -43,11 +42,7 @@ Future<bool> pkg2zip({
 
   var process = await Process.start(
     pathJoin(pkg2zipPath),
-    [
-      if (extract == true) '-x',
-      pathJoin(path),
-      if (zRIF != null) zRIF,
-    ],
+    [if (extract == true) '-x', pathJoin(path), if (zRIF != null) zRIF],
     runInShell: true,
     workingDirectory: pathJoin(workingPath),
   );
@@ -63,22 +58,6 @@ Future<bool> pkg2zip({
   var exitCode = await process.exitCode;
 
   return exitCode == 0;
-}
-
-Future<void> copyPkg2zip(List<String> path) async {
-  const aarch64SourcePath = 'assets/pkg2zip-linux-aarch64/pkg2zip';
-  const windowsX64SourcePath = 'assets/pkg2zip-windows-x64/pkg2zip.exe';
-
-  final sourcePath =
-      Platform.isWindows ? windowsX64SourcePath : aarch64SourcePath;
-
-  final file = File(pathJoin(path));
-  if (!await file.exists()) {
-    final byteData = await rootBundle.load(sourcePath);
-    final buffer = byteData.buffer.asUint8List();
-    await file.writeAsBytes(buffer);
-    logger('File copied to: $path');
-  }
 }
 
 Future<bool> chmodPkg2zip(List<String> path) async {
