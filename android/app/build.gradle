@@ -1,3 +1,6 @@
+import java.nio.file.Files
+import java.security.MessageDigest
+
 plugins {
     id "com.android.application"
     id "kotlin-android"
@@ -34,9 +37,6 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        ndk {
-            abiFilters 'arm64-v8a', 'armeabi-v7a'
-        }
     }
 
     signingConfigs {
@@ -70,17 +70,56 @@ flutter {
     source = "../.."
 }
 
-task copyPkg2zipArm64V8a(type: Copy) {
-    from("../../assets/pkg2zip-android-arm64-v8a/pkg2zip")
-    into("./src/main/jniLibs/arm64-v8a")
-    rename("pkg2zip", "libpkg2zip.so")
+task downloadFiles {
+    doLast {
+        def filesToDownload = [
+            [
+                "url": "https://github.com/nini22P/pkg2zip/releases/download/latest/pkg2zip-android-arm64-v8a",
+                "sha256": "583881c4860ddf583a2cc018a9e05a9f74a63a2d3d62a19678365e50f9f9d9b4",
+                "destination": file("./src/main/jniLibs/arm64-v8a/libpkg2zip.so")
+            ],
+            [
+                "url": "https://github.com/nini22P/pkg2zip/releases/download/latest/pkg2zip-android-armeabi-v7a",
+                "sha256": "af8f0b35fa94c7fe6e56daa9f25d8a5a6a31e4840f956e537976674eb12c0e7e",
+                "destination": file("./src/main/jniLibs/armeabi-v7a/libpkg2zip.so")
+            ],
+            [
+                "url": "https://github.com/devgianlu/aria2-android/releases/download/v1.35.0/aria2c-arm64-v8a",
+                "sha256": "88b8b5feec7e4e7392f129fed4cf61f52a88fdc5dfe1e1464ed467fb41bd1a7f",
+                "destination": file("./src/main/jniLibs/arm64-v8a/libaria2c.so")
+            ],
+            [
+                "url": "https://github.com/devgianlu/aria2-android/releases/download/v1.35.0/aria2c-armeabi-v7a",
+                "sha256": "7556bfad1e6cd4780acc768be1a5a0f064d8dd60d463e2b109c821fc227548fd",
+                "destination": file("./src/main/jniLibs/armeabi-v7a/libaria2c.so")
+            ],
+        ]
+
+        filesToDownload.each { fileInfo ->
+            def destFile = fileInfo.destination
+
+            if (destFile.exists()) {
+                def calculatedHash = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(destFile.toPath())).encodeHex().toString()
+                if (calculatedHash != fileInfo.sha256) {
+                    destFile.delete()
+                    println "SHA-256 mismatch. File deleted: ${destFile}"
+                }
+            }
+
+            if (!destFile.exists()) {
+                destFile.parentFile.mkdirs()
+                println "Downloading file from: ${fileInfo.url}"
+                destFile.withOutputStream { os ->
+                    os << new URL(fileInfo.url).openStream()
+                }
+
+                def calculatedHash = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(destFile.toPath())).encodeHex().toString()
+                if (calculatedHash != fileInfo.sha256) {
+                    throw new GradleException("SHA-256 verification failed for ${destFile}")
+                }
+            }
+        }
+    }
 }
 
-task copyPkg2zipArmeabiV7a(type: Copy) {
-    from("../../assets/pkg2zip-android-armeabi-v7a/pkg2zip")
-    into("./src/main/jniLibs/armeabi-v7a")
-    rename("pkg2zip", "libpkg2zip.so")
-}
-
-preBuild.dependsOn(copyPkg2zipArm64V8a)
-preBuild.dependsOn(copyPkg2zipArmeabiV7a)
+preBuild.dependsOn(downloadFiles)

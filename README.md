@@ -43,7 +43,7 @@ Open shell, run
 ``` shell
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs
-flutter build apk
+flutter build apk --release --target-platform android-arm,android-arm64
 ```
 
 ### Windows
