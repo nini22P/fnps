@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:fnps/utils/logger.dart';
 import 'package:fnps/utils/path.dart';
 import 'package:path/path.dart' as p;
@@ -33,6 +32,7 @@ Future<void> startAria2({int port = 7650, String? secret}) async {
     '--check-certificate=false',
     '--disable-ipv6=true',
     '--log-level=warn',
+    '--stop-with-process=${pid.toString()}',
   ];
 
   if (secret != null && secret.isNotEmpty) {
@@ -44,19 +44,11 @@ Future<void> startAria2({int port = 7650, String? secret}) async {
   }
 
   try {
-    final process = await Process.start(
+    await Process.start(
       aria2cExecutable,
       args,
-      mode: ProcessStartMode.normal,
+      mode: ProcessStartMode.detached,
     );
-
-    process.stdout.transform(utf8.decoder).listen((data) {
-      // logger('Aria2 STDOUT: $data');
-    });
-    process.stderr.transform(utf8.decoder).listen((data) {
-      logger('Aria2 STDERR: $data');
-    });
-
     logger('Aria2 started: http://localhost:$port/jsonrpc');
   } catch (e) {
     logger('Aria2 start failed: $e');
