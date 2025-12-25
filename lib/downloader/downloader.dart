@@ -15,9 +15,7 @@ import 'package:fnps/utils/path.dart';
 import 'package:fnps/utils/pkg.dart';
 
 class Downloader {
-  Downloader._privateConstructor() {
-    _startPolling();
-  }
+  Downloader._privateConstructor();
 
   static final Downloader _instance = Downloader._privateConstructor();
 
@@ -31,13 +29,26 @@ class Downloader {
 
   final Map<String, String> gidToItemId = {}; // gid -> downloadItem.id
 
+  Timer? _pollingTimer;
+  bool _isPolling = false;
+
   final Duration _pollInterval = const Duration(seconds: 1);
 
   void _startPolling() {
+    if (_isPolling) return;
+
+    _isPolling = true;
     logger('Starting polling...');
-    Timer.periodic(_pollInterval, (timer) async {
+
+    _pollingTimer = Timer.periodic(_pollInterval, (timer) async {
       try {
         final globalStat = await Aria2.instance.getGlobalStat();
+
+        if (globalStat.numActive == 0 && globalStat.numStopped == 0) {
+          logger('No active tasks, stopping polling...');
+          _stopPolling();
+          return;
+        }
 
         if (globalStat.numActive != 0) {
           final active = await Aria2.instance.tellActive();
@@ -48,19 +59,6 @@ class Downloader {
 
         // if (globalStat.numWaiting != 0) {
         //   final waiting = await Aria2.instance.tellWaiting();
-        //   for (final status in waiting) {
-        //     final itemId = gidToItemId[status.gid];
-        //     if (itemId != null) {
-        //       final item = downloadBox.get(itemId);
-        //       if (item != null &&
-        //           item.downloadStatus != DownloadStatus.queued) {
-        //         downloadBox.put(
-        //           itemId,
-        //           item.copyWith(downloadStatus: DownloadStatus.queued),
-        //         );
-        //       }
-        //     }
-        //   }
         // }
 
         if (globalStat.numStopped != 0) {
@@ -73,6 +71,15 @@ class Downloader {
         logger("Aria2 polling error: $e");
       }
     });
+  }
+
+  void _stopPolling() {
+    if (_pollingTimer != null) {
+      _pollingTimer!.cancel();
+      _pollingTimer = null;
+      _isPolling = false;
+      logger('Polling stopped');
+    }
   }
 
   Future<void> init() async {
@@ -306,7 +313,11 @@ class Downloader {
 
       gidToItemId[gid] = id;
 
-      logger('Download added to aria2: gid=$gid, dir=$dir, file=$filename');
+      logger('Download added to aria2: gid=$gid, file=$filename');
+
+      if (!_isPolling) {
+        _startPolling();
+      }
     } catch (e) {
       DownloadItem? downloadItem = downloadBox.get(content.getID());
       if (downloadItem != null) {
@@ -348,22 +359,6 @@ class Downloader {
     final downloadItem = downloadBox.get(itemId);
     if (downloadItem == null) return;
 
-    if (status.status == 'complete' &&
-        downloadItem.downloadStatus == DownloadStatus.completed) {
-      if ([
-        ExtractStatus.completed,
-        ExtractStatus.notNeeded,
-      ].contains(downloadItem.extractStatus)) {
-        try {
-          await Aria2.instance.removeDownloadResult(status.gid);
-          gidToItemId.remove(status.gid);
-        } catch (e) {
-          logger('Failed to clean aria2 result: ${status.gid}', error: e);
-        }
-      }
-      return;
-    }
-
     if (status.status == 'complete') {
       logger('Download completed: ${downloadItem.filename}');
 
@@ -375,23 +370,9 @@ class Downloader {
         ),
       );
 
-      await _extractDownload(downloadItem);
+      final result = await _extractDownload(downloadItem);
 
-      final updatedItem = downloadBox.get(downloadItem.id);
-
-      if (updatedItem != null &&
-          [
-            ExtractStatus.completed,
-            ExtractStatus.notNeeded,
-          ].contains(updatedItem.extractStatus)) {
-        try {
-          await Aria2.instance.removeDownloadResult(status.gid);
-          gidToItemId.remove(status.gid);
-          logger('Cleaned aria2 result: ${status.gid}');
-        } catch (e) {
-          logger('Failed to clean aria2 result: ${status.gid}', error: e);
-        }
-      } else {
+      if (!result) {
         logger('Extract failed, keeping aria2 result for retry: ${status.gid}');
       }
     } else if (status.status == 'error') {
@@ -400,11 +381,17 @@ class Downloader {
         downloadItem.id,
         downloadItem.copyWith(downloadStatus: DownloadStatus.failed),
       );
+    }
+
+    try {
+      await Aria2.instance.removeDownloadResult(status.gid);
       gidToItemId.remove(status.gid);
+    } catch (e) {
+      logger('Failed to clean aria2 result: ${status.gid}', error: e);
     }
   }
 
-  Future<void> _extractDownload(DownloadItem downloadItem) async {
+  Future<bool> _extractDownload(DownloadItem downloadItem) async {
     final itemId = downloadItem.id;
 
     void updateItem(DownloadItem Function(DownloadItem) updater) {
@@ -472,6 +459,7 @@ class Downloader {
           await file.delete();
         }
       }
+      return true;
     } else {
       if (downloadItem.content.platform == Platform.ps3 &&
           downloadItem.content.category != Category.update &&
@@ -487,6 +475,8 @@ class Downloader {
               : ExtractStatus.failed,
         ),
       );
+
+      return downloadItem.content.platform == Platform.ps3;
     }
   }
 }
