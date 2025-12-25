@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:fnps/models/aria2.dart';
 import 'package:fnps/utils/logger.dart';
 import 'package:fnps/utils/path.dart';
+import 'package:fnps/utils/platform.dart';
 import 'package:path/path.dart' as p;
 
 class Aria2 {
@@ -13,6 +14,8 @@ class Aria2 {
   static final Aria2 _instance = Aria2._privateConstructor();
 
   static Aria2 get instance => _instance;
+
+  Process? _process;
 
   int _requestId = 0;
   Aria2Config? config;
@@ -35,7 +38,7 @@ class Aria2 {
     final url = 'http://localhost:$port/jsonrpc';
 
     final List<dynamic> finalParams = [];
-    if (secret != null && secret.isNotEmpty) {
+    if (secret.isNotEmpty) {
       finalParams.add('token:$secret');
     }
     if (params != null) {
@@ -84,20 +87,22 @@ class Aria2 {
 
     final List<String> args = [
       '--conf-path=${pathJoin(confPath)}',
-      '--stop-with-process=${pid.toString()}',
-      '--enable-rpc',
+      if (isDesktop) '--stop-with-process=${pid.toString()}',
     ];
 
-    if (!Platform.isWindows) {
-      args.add('-D');
-    }
-
     try {
-      await Process.start(
-        aria2cExecutable,
-        args,
-        mode: ProcessStartMode.detached,
-      );
+      _process = await Process.start(aria2cExecutable, args);
+
+      _process?.stdout.transform(utf8.decoder).listen((line) {
+        if (line.trim().isEmpty) return;
+        logger('Aria2 output: $line');
+      });
+
+      _process?.stderr.transform(utf8.decoder).listen((line) {
+        if (line.trim().isEmpty) return;
+        logger('Aria2 error: $line');
+      });
+
       logger('Aria2 started: port ${config!.port}');
     } catch (e) {
       logger('Aria2 start failed: $e');
@@ -200,8 +205,8 @@ class Aria2 {
     final contents = await file.readAsString();
     final lines = contents.split('\n');
 
-    int port = 7650;
-    String? secret;
+    int port = 16876;
+    String secret = 'fnps';
 
     for (final line in lines) {
       final trimmed = line.trim();

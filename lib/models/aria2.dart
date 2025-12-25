@@ -5,8 +5,8 @@ part 'aria2.g.dart';
 
 class Aria2Config {
   final int port;
-  final String? secret;
-  Aria2Config({required this.port, this.secret});
+  final String secret;
+  Aria2Config({required this.port, required this.secret});
 }
 
 @freezed

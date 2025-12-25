@@ -39,8 +39,6 @@ class Downloader {
       try {
         final globalStat = await Aria2.instance.getGlobalStat();
 
-        logger('Aria2 globalStat: $globalStat');
-
         if (globalStat.numActive != 0) {
           final active = await Aria2.instance.tellActive();
           for (final status in active) {
@@ -48,22 +46,22 @@ class Downloader {
           }
         }
 
-        if (globalStat.numWaiting != 0) {
-          final waiting = await Aria2.instance.tellWaiting();
-          for (final status in waiting) {
-            final itemId = gidToItemId[status.gid];
-            if (itemId != null) {
-              final item = downloadBox.get(itemId);
-              if (item != null &&
-                  item.downloadStatus != DownloadStatus.queued) {
-                downloadBox.put(
-                  itemId,
-                  item.copyWith(downloadStatus: DownloadStatus.queued),
-                );
-              }
-            }
-          }
-        }
+        // if (globalStat.numWaiting != 0) {
+        //   final waiting = await Aria2.instance.tellWaiting();
+        //   for (final status in waiting) {
+        //     final itemId = gidToItemId[status.gid];
+        //     if (itemId != null) {
+        //       final item = downloadBox.get(itemId);
+        //       if (item != null &&
+        //           item.downloadStatus != DownloadStatus.queued) {
+        //         downloadBox.put(
+        //           itemId,
+        //           item.copyWith(downloadStatus: DownloadStatus.queued),
+        //         );
+        //       }
+        //     }
+        //   }
+        // }
 
         if (globalStat.numStopped != 0) {
           final stopped = await Aria2.instance.tellStopped();
