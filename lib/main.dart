@@ -44,9 +44,8 @@ Future<void> main() async {
   await Hive.openBox<Content>(psxBoxName);
   await Hive.openBox<Content>(ps3BoxName);
 
+  await Aria2.instance.init();
   await Downloader.instance.init();
-
-  await startAria2();
 
   runApp(
     ChangeNotifierProvider(

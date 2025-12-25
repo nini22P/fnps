@@ -29,31 +29,35 @@ class Downloads extends HookWidget {
     final ps3Box = Hive.box<Content>(ps3BoxName);
     final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
 
-    final downloads =
-        useListenable(downloadBox.listenable()).value.values.toList();
+    final downloads = useListenable(
+      downloadBox.listenable(),
+    ).value.values.toList();
 
     final apps = useMemoized(
-        () => [
-              ...psvBox.values,
-              ...pspBox.values,
-              ...psmBox.values,
-              ...psxBox.values,
-              ...ps3Box.values
-            ]
-                .where((content) => downloads.any((download) =>
-                    (download.content == content &&
-                        content.category == Category.game) ||
-                    (download.content.category != Category.game &&
-                        download.content.titleID == content.titleID &&
-                        content.category == Category.game)))
-                .toList(),
-        [downloads]);
+      () =>
+          [
+                ...psvBox.values,
+                ...pspBox.values,
+                ...psmBox.values,
+                ...psxBox.values,
+                ...ps3Box.values,
+              ]
+              .where(
+                (content) => downloads.any(
+                  (download) =>
+                      (download.content == content &&
+                          content.category == Category.game) ||
+                      (download.content.category != Category.game &&
+                          download.content.titleID == content.titleID &&
+                          content.category == Category.game),
+                ),
+              )
+              .toList(),
+      [downloads],
+    );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.download),
-        forceMaterialTransparency: true,
-      ),
+      appBar: AppBar(title: Text(t.download), forceMaterialTransparency: true),
       body: ListView.builder(
         itemCount: apps.length,
         itemBuilder: (context, index) {
@@ -63,23 +67,32 @@ class Downloads extends HookWidget {
               .where((item) => item.content.titleID == content.titleID)
               .toList();
 
-          final contents =
-              currentDownloads.map((item) => item.content).toList();
+          final contents = currentDownloads
+              .map((item) => item.content)
+              .toList();
 
-          final currentCompletedDownloads = currentDownloads.where((item) => [
-                ExtractStatus.completed,
-                ExtractStatus.notNeeded
-              ].contains(item.extractStatus));
+          final currentCompletedDownloads = currentDownloads.where(
+            (item) => [
+              ExtractStatus.completed,
+              ExtractStatus.notNeeded,
+            ].contains(item.extractStatus),
+          );
 
-          bool isDownloading = currentDownloads
-              .any((item) => item.downloadStatus == DownloadStatus.downloading);
+          bool isDownloading = currentDownloads.any(
+            (item) => item.downloadStatus == DownloadStatus.downloading,
+          );
 
-          bool isExtracting = currentDownloads
-              .any((item) => item.extractStatus == ExtractStatus.extracting);
+          bool isExtracting = currentDownloads.any(
+            (item) => item.extractStatus == ExtractStatus.extracting,
+          );
 
           final incompletedDownloads = currentDownloads
-              .where((item) => [ExtractStatus.queued, ExtractStatus.extracting]
-                  .contains(item.extractStatus))
+              .where(
+                (item) => [
+                  ExtractStatus.queued,
+                  ExtractStatus.extracting,
+                ].contains(item.extractStatus),
+              )
               .toList();
 
           final allDownloadSize = currentDownloads
@@ -99,9 +112,8 @@ class Downloads extends HookWidget {
                 child: CachedNetworkImage(
                   imageUrl: getContentIcon(content, size: 96) ?? '',
                   fit: BoxFit.contain,
-                  placeholder: (context, url) => const SizedBox(
-                    child: Center(child: Icon(Icons.gamepad)),
-                  ),
+                  placeholder: (context, url) =>
+                      const SizedBox(child: Center(child: Icon(Icons.gamepad))),
                   errorWidget: (context, url, error) =>
                       const Icon(Icons.gamepad),
                   errorListener: (_) {},
@@ -116,57 +128,70 @@ class Downloads extends HookWidget {
                 CustomBadge(text: content.platform.name),
                 CustomBadge(text: content.titleID),
                 CustomBadge(
-                    text: incompletedDownloads.isEmpty
-                        ? '${fileSizeConv(currentDownloadSize)}'
-                        : '${fileSizeConv(currentDownloadSize)} / ${fileSizeConv(allDownloadSize)}'),
+                  text: incompletedDownloads.isEmpty
+                      ? '${fileSizeConv(currentDownloadSize)}'
+                      : '${fileSizeConv(currentDownloadSize)} / ${fileSizeConv(allDownloadSize)}',
+                ),
                 CustomBadge(
-                    text: currentCompletedDownloads.length ==
-                            currentDownloads.length
-                        ? '${currentCompletedDownloads.length}'
-                        : '${currentCompletedDownloads.length} / ${currentDownloads.length}'),
+                  text:
+                      currentCompletedDownloads.length ==
+                          currentDownloads.length
+                      ? '${currentCompletedDownloads.length}'
+                      : '${currentCompletedDownloads.length} / ${currentDownloads.length}',
+                ),
                 if (isExtracting && incompletedDownloads.isEmpty)
                   CustomBadge(text: t.extracting),
               ],
             ),
-            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-              if (incompletedDownloads.isNotEmpty)
-                isDownloading
-                    ? IconButton(
-                        tooltip: isExtracting ? t.extracting : t.pause,
-                        icon: const Icon(Icons.pause),
-                        onPressed: () => downloader.pause(contents))
-                    : IconButton(
-                        tooltip: t.download,
-                        icon: const Icon(Icons.download),
-                        onPressed: () => downloader.add(incompletedDownloads
-                            .map((e) => e.content)
-                            .toList())),
-              PopupMenuButton(
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    child: Text(t.open_in_folder),
-                    onTap: () async {
-                      final result = await openExplorer(
-                          dir: currentDownloads[0].directory);
-                      if (!result && context.mounted) {
-                        logger('Could not open directory');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(t.cannot_open_in_folder)));
-                      }
-                    },
-                  ),
-                  PopupMenuItem(
-                    child: Text(t.delete),
-                    onTap: () => downloader.remove(
-                        currentDownloads.map((e) => e.content).toList()),
-                  ),
-                ],
-              ),
-            ]),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (incompletedDownloads.isNotEmpty)
+                  isDownloading
+                      ? IconButton(
+                          tooltip: isExtracting ? t.extracting : t.pause,
+                          icon: const Icon(Icons.pause),
+                          onPressed: () => downloader.pause(contents),
+                        )
+                      : IconButton(
+                          tooltip: t.download,
+                          icon: const Icon(Icons.download),
+                          onPressed: () => downloader.add(
+                            incompletedDownloads.map((e) => e.content).toList(),
+                          ),
+                        ),
+                PopupMenuButton(
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      child: Text(t.open_in_folder),
+                      onTap: () async {
+                        final result = await openExplorer(
+                          dir: currentDownloads[0].directory,
+                        );
+                        if (!result && context.mounted) {
+                          logger('Could not open directory');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(t.cannot_open_in_folder)),
+                          );
+                        }
+                      },
+                    ),
+                    PopupMenuItem(
+                      child: Text(t.delete),
+                      onTap: () => downloader.remove(
+                        currentDownloads.map((e) => e.content).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
             onTap: () {
-              Navigator.pushNamed(context, '/content',
-                  arguments:
-                      ContentPageProps(content: content, initialIndex: 1));
+              Navigator.pushNamed(
+                context,
+                '/content',
+                arguments: ContentPageProps(content: content, initialIndex: 1),
+              );
             },
           );
         },

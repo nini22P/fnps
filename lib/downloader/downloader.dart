@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
-import 'package:dio/dio.dart';
+import 'package:fnps/downloader/aria2.dart';
+import 'package:fnps/models/aria2.dart';
 import 'package:fnps/utils/rap.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:fnps/downloader/create_download_item.dart';
@@ -13,39 +15,84 @@ import 'package:fnps/utils/path.dart';
 import 'package:fnps/utils/pkg.dart';
 
 class Downloader {
-  Downloader._privateConstructor();
+  Downloader._privateConstructor() {
+    _startPolling();
+  }
 
   static final Downloader _instance = Downloader._privateConstructor();
 
   static Downloader get instance => _instance;
 
-  final dio = Dio();
-
   Box<DownloadItem> downloadBox = Hive.box<DownloadItem>(downloadBoxName);
 
   final Queue<Content> _queue = Queue();
-  final Map<String, CancelToken> cancelTokens = {};
   int maxConcurrentTasks = 3;
   int runningTasks = 0;
 
-  static const partialExtension = ".partial";
-  static const tempExtension = ".temp";
+  final Map<String, String> gidToItemId = {}; // gid -> downloadItem.id
+
+  final Duration _pollInterval = const Duration(seconds: 1);
+
+  void _startPolling() {
+    logger('Starting polling...');
+    Timer.periodic(_pollInterval, (timer) async {
+      try {
+        final globalStat = await Aria2.instance.getGlobalStat();
+
+        logger('Aria2 globalStat: $globalStat');
+
+        if (globalStat.numActive != 0) {
+          final active = await Aria2.instance.tellActive();
+          for (final status in active) {
+            _updateDownloadStatus(status);
+          }
+        }
+
+        if (globalStat.numWaiting != 0) {
+          final waiting = await Aria2.instance.tellWaiting();
+          for (final status in waiting) {
+            final itemId = gidToItemId[status.gid];
+            if (itemId != null) {
+              final item = downloadBox.get(itemId);
+              if (item != null &&
+                  item.downloadStatus != DownloadStatus.queued) {
+                downloadBox.put(
+                  itemId,
+                  item.copyWith(downloadStatus: DownloadStatus.queued),
+                );
+              }
+            }
+          }
+        }
+
+        if (globalStat.numStopped != 0) {
+          final stopped = await Aria2.instance.tellStopped();
+          for (final status in stopped) {
+            await _handleStoppedStatus(status);
+          }
+        }
+      } catch (e) {
+        logger("Aria2 polling error: $e");
+      }
+    });
+  }
 
   Future<void> init() async {
-    dio.options.connectTimeout = const Duration(seconds: 15);
-    dio.options.receiveTimeout = const Duration(seconds: 60);
-
     final downloads = downloadBox.values.toList();
     for (final download in downloads) {
-      if ([DownloadStatus.downloading, DownloadStatus.queued]
-          .contains(download.downloadStatus)) {
+      if ([
+        DownloadStatus.downloading,
+        DownloadStatus.queued,
+      ].contains(download.downloadStatus)) {
         downloadBox.put(
           download.id,
           download.copyWith(downloadStatus: DownloadStatus.paused),
         );
       } else if (download.downloadStatus == DownloadStatus.completed &&
-          [ExtractStatus.queued, ExtractStatus.extracting]
-              .contains(download.extractStatus)) {
+          [
+            ExtractStatus.queued,
+            ExtractStatus.extracting,
+          ].contains(download.extractStatus)) {
         downloadBox.put(
           download.id,
           download.copyWith(extractStatus: ExtractStatus.failed),
@@ -56,15 +103,67 @@ class Downloader {
 
   Future<void> add(List<Content> contents) async {
     for (final content in contents) {
-      final downloadItem = await createDownloadItem(content);
       final id = content.getID();
-      if (downloadItem == null || id == null) return;
+      if (id == null) continue;
 
-      if (downloadItem.downloadStatus == DownloadStatus.downloading ||
-          _queue.contains(content)) {
-        logger('Already downloading $id...');
+      DownloadItem? existingItem = downloadBox.get(id);
+
+      if (existingItem != null) {
+        if (existingItem.downloadStatus == DownloadStatus.downloading ||
+            _queue.contains(content)) {
+          logger('Already downloading $id...');
+          continue;
+        }
+
+        if ([
+          DownloadStatus.paused,
+          DownloadStatus.failed,
+          DownloadStatus.canceled,
+        ].contains(existingItem.downloadStatus)) {
+          logger('Resuming download $id...');
+          downloadBox.put(
+            existingItem.id,
+            existingItem.copyWith(downloadStatus: DownloadStatus.queued),
+          );
+          _queue.add(content);
+          continue;
+        }
+
+        if (existingItem.downloadStatus == DownloadStatus.completed &&
+            existingItem.extractStatus == ExtractStatus.failed) {
+          final pkgPath = pathJoin([
+            ...existingItem.directory,
+            existingItem.filename,
+          ]);
+          final pkgFile = File(pkgPath);
+
+          if (await pkgFile.exists()) {
+            logger('Re-extracting $id...');
+            await _extractDownload(existingItem);
+            continue;
+          } else {
+            logger('PKG file not found, re-downloading $id...');
+            downloadBox.put(
+              existingItem.id,
+              existingItem.copyWith(
+                downloadStatus: DownloadStatus.queued,
+                extractStatus: ExtractStatus.queued,
+                progress: 0.0,
+              ),
+            );
+            _queue.add(content);
+            continue;
+          }
+        }
+
+        logger(
+          'Download already exists with status: ${existingItem.downloadStatus}',
+        );
         continue;
       }
+
+      final downloadItem = await createDownloadItem(content);
+      if (downloadItem == null) continue;
 
       logger('Adding $id to download queue...');
       await downloadBox.put(downloadItem.id, downloadItem);
@@ -97,21 +196,34 @@ class Downloader {
           [
             DownloadStatus.canceled,
             DownloadStatus.completed,
-            DownloadStatus.failed
+            DownloadStatus.failed,
           ].contains(downloadItem.downloadStatus)) {
         continue;
       }
 
-      logger('Pausing $id (Dio: set status to paused)...');
-      downloadBox.put(
-        downloadItem.id,
-        downloadItem.copyWith(downloadStatus: DownloadStatus.paused),
-      );
-      final cancelToken = cancelTokens[id];
-      if (cancelToken != null && !cancelToken.isCancelled) {
-        cancelToken.cancel('Download paused');
-        runningTasks--;
+      logger('Pausing $id...');
+
+      String? gid;
+      gidToItemId.forEach((key, value) {
+        if (value == id) {
+          gid = key;
+        }
+      });
+
+      if (gid != null) {
+        try {
+          await Aria2.instance.pause(gid!);
+
+          downloadBox.put(
+            downloadItem.id,
+            downloadItem.copyWith(downloadStatus: DownloadStatus.paused),
+          );
+          logger('Aria2 pause called for gid=$gid');
+        } catch (e) {
+          logger('Failed to pause aria2 task: $gid', error: e);
+        }
       }
+
       if (_queue.contains(content)) {
         _queue.remove(content);
       }
@@ -125,28 +237,43 @@ class Downloader {
         if (downloadItem != null) {
           await pause([content]);
 
-          final String filePath =
-              pathJoin([...downloadItem.directory, downloadItem.filename]);
-          final String partialFilePath =
-              pathJoin([...downloadItem.directory, downloadItem.filename]) +
-                  partialExtension;
+          final String filePath = pathJoin([
+            ...downloadItem.directory,
+            downloadItem.filename,
+          ]);
+          final String aria2FilePath = '$filePath.aria2';
 
           File file = File(filePath);
-          File partialFile = File(partialFilePath);
-
-          bool fileExist = await file.exists();
-          bool partialFileExist = await partialFile.exists();
+          File aria2File = File(aria2FilePath);
 
           try {
-            if (fileExist) await file.delete();
+            if (await file.exists()) await file.delete();
           } catch (e) {
             logger('Not delete file: $filePath', error: e);
           }
 
           try {
-            if (partialFileExist) await partialFile.delete();
+            if (await aria2File.exists()) await aria2File.delete();
           } catch (e) {
-            logger('Not delete partial file: $filePath', error: e);
+            logger('Not delete aria2 file: $aria2FilePath', error: e);
+          }
+
+          String? gid;
+          gidToItemId.forEach((key, value) {
+            if (value == downloadItem.id) {
+              gid = key;
+            }
+          });
+
+          if (gid != null) {
+            try {
+              await Aria2.instance.remove(gid!);
+              await Aria2.instance.removeDownloadResult(gid!);
+              gidToItemId.remove(gid);
+              logger('Aria2 task removed: gid=$gid');
+            } catch (e) {
+              logger('Failed to remove aria2 task: $gid', error: e);
+            }
           }
 
           await downloadBox.delete(content.getID());
@@ -162,16 +289,10 @@ class Downloader {
     final String? url = content.pkgDirectLink;
     if (url == null) return;
 
-    late String partialFilePath;
-    late File partialFile;
-
     try {
       DownloadItem? downloadItem = downloadBox.get(content.getID());
       final id = downloadItem?.id;
       if (downloadItem == null || id == null) return;
-
-      CancelToken cancelToken = CancelToken();
-      cancelTokens[id] = cancelToken;
 
       logger('Starting download for ${content.name}');
 
@@ -180,218 +301,194 @@ class Downloader {
         downloadItem.copyWith(downloadStatus: DownloadStatus.downloading),
       );
 
-      final String filePath =
-          pathJoin([...downloadItem.directory, downloadItem.filename]);
+      final String dir = pathJoin(downloadItem.directory);
+      final String filename = downloadItem.filename;
 
-      File file = File(filePath);
-      partialFilePath =
-          pathJoin([...downloadItem.directory, downloadItem.filename]) +
-              partialExtension;
-      partialFile = File(partialFilePath);
+      final String gid = await Aria2.instance.addUri(url, dir, filename);
 
-      File tempFile = File(partialFilePath + tempExtension);
+      gidToItemId[gid] = id;
 
-      if (await tempFile.exists()) {
-        await tempFile.delete();
-      }
-
-      bool fileExist = await file.exists();
-      bool partialFileExist = await partialFile.exists();
-
-      if (fileExist) {
-        logger("File Exists");
-        downloadBox.put(
-          downloadItem.id,
-          downloadItem.copyWith(
-            progress: 1,
-            downloadStatus: DownloadStatus.completed,
-          ),
-        );
-      } else if (partialFileExist) {
-        logger("Partial File Exists");
-
-        int partialFileLength = await partialFile.length();
-
-        Response response = await dio.download(
-          url,
-          partialFilePath + tempExtension,
-          onReceiveProgress: onReceiveCallback(content, partialFileLength),
-          options: Options(
-            headers: {HttpHeaders.rangeHeader: 'bytes=$partialFileLength-'},
-          ),
-          cancelToken: cancelToken,
-          deleteOnError: false,
-        );
-
-        if (response.statusCode == HttpStatus.partialContent) {
-          IOSink ioSink = partialFile.openWrite(mode: FileMode.writeOnlyAppend);
-          File tempFile = File(partialFilePath + tempExtension);
-          await ioSink.addStream(tempFile.openRead());
-          await tempFile.delete();
-          await ioSink.close();
-          await partialFile.rename(filePath);
-
-          downloadBox.put(
-            downloadItem.id,
-            downloadItem.copyWith(
-              progress: 1,
-              downloadStatus: DownloadStatus.completed,
-            ),
-          );
-        }
-      } else {
-        Response response = await dio.download(
-          url,
-          partialFilePath,
-          onReceiveProgress: onReceiveCallback(content, 0),
-          cancelToken: cancelToken,
-          deleteOnError: false,
-        );
-
-        if (response.statusCode == HttpStatus.ok) {
-          await partialFile.rename(filePath);
-          downloadBox.put(
-            downloadItem.id,
-            downloadItem.copyWith(
-              progress: 1,
-              downloadStatus: DownloadStatus.completed,
-            ),
-          );
-        }
-      }
+      logger('Download added to aria2: gid=$gid, dir=$dir, file=$filename');
     } catch (e) {
-      IOSink ioSink = partialFile.openWrite(mode: FileMode.writeOnlyAppend);
-      File tempFile = File(partialFilePath + tempExtension);
-
-      if (await tempFile.exists()) {
-        await ioSink.addStream(tempFile.openRead());
-        await tempFile.delete();
-      }
-
-      await ioSink.close();
-
       DownloadItem? downloadItem = downloadBox.get(content.getID());
-      if (downloadItem!.downloadStatus != DownloadStatus.canceled &&
-          downloadItem.downloadStatus != DownloadStatus.paused) {
-        logger('Downloading failed ${content.getID()}', error: e);
+      if (downloadItem != null) {
+        logger('Failed to add download to aria2: ${content.getID()}', error: e);
         downloadBox.put(
           downloadItem.id,
           downloadItem.copyWith(downloadStatus: DownloadStatus.failed),
         );
       }
     } finally {
-      DownloadItem? downloadItem = downloadBox.get(content.getID());
-      if (downloadItem != null &&
-          downloadItem.downloadStatus == DownloadStatus.completed) {
-        final List<String> path = [
-          ...downloadItem.directory,
-          downloadItem.filename
-        ];
+      runningTasks--;
+      _start();
+    }
+  }
 
-        downloadBox.put(
-          downloadItem.id,
-          downloadItem.copyWith(
-            extractStatus: ExtractStatus.extracting,
-          ),
-        );
+  void _updateDownloadStatus(Aria2Status status) {
+    final itemId = gidToItemId[status.gid];
+    if (itemId == null) return;
 
+    final downloadItem = downloadBox.get(itemId);
+    if (downloadItem == null) return;
+
+    if (downloadItem.downloadStatus != DownloadStatus.downloading) return;
+
+    final progress = status.totalLength > 0
+        ? status.completedLength / status.totalLength
+        : 0.0;
+
+    downloadBox.put(
+      downloadItem.id,
+      downloadItem.copyWith(progress: progress, size: status.totalLength),
+    );
+  }
+
+  Future<void> _handleStoppedStatus(Aria2Status status) async {
+    final itemId = gidToItemId[status.gid];
+    if (itemId == null) return;
+
+    final downloadItem = downloadBox.get(itemId);
+    if (downloadItem == null) return;
+
+    if (status.status == 'complete' &&
+        downloadItem.downloadStatus == DownloadStatus.completed) {
+      if ([
+        ExtractStatus.completed,
+        ExtractStatus.notNeeded,
+      ].contains(downloadItem.extractStatus)) {
         try {
-          final pkgName = await getPkgName(path);
-          logger('pkgName: $pkgName');
+          await Aria2.instance.removeDownloadResult(status.gid);
+          gidToItemId.remove(status.gid);
         } catch (e) {
-          logger('getPkgName failed:', error: e);
+          logger('Failed to clean aria2 result: ${status.gid}', error: e);
         }
+      }
+      return;
+    }
 
-        bool deletePkgAfterUnpacking = false;
+    if (status.status == 'complete') {
+      logger('Download completed: ${downloadItem.filename}');
 
-        final configPath = await getConfigPath();
-        final filePath = pathJoin([...configPath, 'config.json']);
-        final file = File(filePath);
+      downloadBox.put(
+        downloadItem.id,
+        downloadItem.copyWith(
+          progress: 1.0,
+          downloadStatus: DownloadStatus.completed,
+        ),
+      );
 
-        if (await file.exists()) {
-          String jsonString = await file.readAsString();
-          Map<String, dynamic> jsonData = jsonDecode(jsonString);
-          deletePkgAfterUnpacking =
-              jsonData['deletePkgAfterUnpacking'] ?? false;
+      await _extractDownload(downloadItem);
+
+      final updatedItem = downloadBox.get(downloadItem.id);
+
+      if (updatedItem != null &&
+          [
+            ExtractStatus.completed,
+            ExtractStatus.notNeeded,
+          ].contains(updatedItem.extractStatus)) {
+        try {
+          await Aria2.instance.removeDownloadResult(status.gid);
+          gidToItemId.remove(status.gid);
+          logger('Cleaned aria2 result: ${status.gid}');
+        } catch (e) {
+          logger('Failed to clean aria2 result: ${status.gid}', error: e);
         }
+      } else {
+        logger('Extract failed, keeping aria2 result for retry: ${status.gid}');
+      }
+    } else if (status.status == 'error') {
+      logger('Download error: ${downloadItem.filename}');
+      downloadBox.put(
+        downloadItem.id,
+        downloadItem.copyWith(downloadStatus: DownloadStatus.failed),
+      );
+      gidToItemId.remove(status.gid);
+    }
+  }
 
-        final result = await pkg2zip(
-          path: path,
-          extract: content.platform == Platform.psv &&
-                  content.category == Category.theme
-              ? false
-              : true,
-          zRIF: content.zRIF,
-        );
+  Future<void> _extractDownload(DownloadItem downloadItem) async {
+    final itemId = downloadItem.id;
 
-        if (result) {
-          downloadBox.put(
-            downloadItem.id,
-            downloadItem.copyWith(
-              extractStatus: ExtractStatus.completed,
-            ),
-          );
-          if (deletePkgAfterUnpacking) {
-            final file = File(pathJoin(path));
-            if (await file.exists()) {
-              await file.delete();
-            }
-          }
-        } else {
-          if (content.platform == Platform.ps3 &&
-              content.category != Category.update &&
-              content.rap != null &&
-              content.rap!.isNotEmpty) {
-            await downloadRAP(content);
-          }
-          downloadBox.put(
-            downloadItem.id,
-            downloadItem.copyWith(
-              extractStatus: content.platform == Platform.ps3
-                  ? ExtractStatus.notNeeded
-                  : ExtractStatus.failed,
-            ),
-          );
-        }
+    void updateItem(DownloadItem Function(DownloadItem) updater) {
+      final item = downloadBox.get(itemId);
+      if (item != null) {
+        downloadBox.put(itemId, updater(item));
       }
     }
 
-    runningTasks--;
-    _start();
-  }
+    final List<String> path = [
+      ...downloadItem.directory,
+      downloadItem.filename,
+    ];
 
-  DateTime? lastUpdateTime;
+    updateItem(
+      (item) => item.copyWith(
+        downloadStatus: DownloadStatus.completed,
+        progress: 1.0,
+      ),
+    );
 
-  void Function(int, int) onReceiveCallback(
-    Content content,
-    int partialFileLength,
-  ) =>
-      (
-        int received,
-        int total,
-      ) {
-        DownloadItem? downloadItem = downloadBox.get(content.getID());
-        if (downloadItem == null) return;
+    await Future.delayed(const Duration(milliseconds: 300));
 
-        DateTime now = DateTime.now();
+    updateItem(
+      (item) => item.copyWith(extractStatus: ExtractStatus.extracting),
+    );
 
-        if (lastUpdateTime != null &&
-            now.difference(lastUpdateTime!).inSeconds < 1) {
-          return;
+    try {
+      final pkgName = await getPkgName(path);
+      logger('pkgName: $pkgName');
+    } catch (e) {
+      logger('getPkgName failed:', error: e);
+    }
+
+    bool deletePkgAfterUnpacking = false;
+
+    final configPath = await getConfigPath();
+    final filePath = pathJoin([...configPath, 'config.json']);
+    final file = File(filePath);
+
+    if (await file.exists()) {
+      String jsonString = await file.readAsString();
+      Map<String, dynamic> jsonData = jsonDecode(jsonString);
+      deletePkgAfterUnpacking = jsonData['deletePkgAfterUnpacking'] ?? false;
+    }
+
+    final result = await pkg2zip(
+      path: path,
+      extract:
+          downloadItem.content.platform == Platform.psv &&
+              downloadItem.content.category == Category.theme
+          ? false
+          : true,
+      zRIF: downloadItem.content.zRIF,
+    );
+
+    if (result) {
+      updateItem(
+        (item) => item.copyWith(extractStatus: ExtractStatus.completed),
+      );
+
+      if (deletePkgAfterUnpacking) {
+        final file = File(pathJoin(path));
+        if (await file.exists()) {
+          await file.delete();
         }
+      }
+    } else {
+      if (downloadItem.content.platform == Platform.ps3 &&
+          downloadItem.content.category != Category.update &&
+          downloadItem.content.rap != null &&
+          downloadItem.content.rap!.isNotEmpty) {
+        await downloadRAP(downloadItem.content);
+      }
 
-        lastUpdateTime = now;
-
-        downloadBox.put(
-          downloadItem.id,
-          downloadItem.copyWith(
-            downloadStatus: DownloadStatus.downloading,
-            progress:
-                (received + partialFileLength) / (total + partialFileLength),
-            size: total + partialFileLength,
-          ),
-        );
-
-        if (total == -1) {}
-      };
+      updateItem(
+        (item) => item.copyWith(
+          extractStatus: downloadItem.content.platform == Platform.ps3
+              ? ExtractStatus.notNeeded
+              : ExtractStatus.failed,
+        ),
+      );
+    }
+  }
 }
