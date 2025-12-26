@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:convert';
 import 'dart:io';
 import 'package:fnps/downloader/aria2.dart';
 import 'package:fnps/models/aria2.dart';
@@ -31,8 +30,7 @@ class Downloader {
 
   Timer? _pollingTimer;
   bool _isPolling = false;
-
-  final Duration _pollInterval = const Duration(seconds: 1);
+  Duration pollInterval = Duration(milliseconds: 1500);
 
   void _startPolling() {
     if (_isPolling) return;
@@ -40,7 +38,7 @@ class Downloader {
     _isPolling = true;
     logger('Starting polling...');
 
-    _pollingTimer = Timer.periodic(_pollInterval, (timer) async {
+    _pollingTimer = Timer.periodic(pollInterval, (timer) async {
       try {
         final globalStat = await Aria2.instance.getGlobalStat();
 
@@ -359,6 +357,19 @@ class Downloader {
     final downloadItem = downloadBox.get(itemId);
     if (downloadItem == null) return;
 
+    try {
+      await Aria2.instance.removeDownloadResult(status.gid);
+      gidToItemId.remove(status.gid);
+    } catch (e) {
+      logger('Failed to clean aria2 result: ${status.gid}', error: e);
+    }
+
+    if (downloadItem.extractStatus == ExtractStatus.extracting ||
+        downloadItem.extractStatus == ExtractStatus.completed ||
+        downloadItem.extractStatus == ExtractStatus.notNeeded) {
+      return;
+    }
+
     if (status.status == 'complete') {
       logger('Download completed: ${downloadItem.filename}');
 
@@ -370,7 +381,12 @@ class Downloader {
         ),
       );
 
-      final result = await _extractDownload(downloadItem);
+      final result = await _extractDownload(
+        downloadItem.copyWith(
+          progress: 1.0,
+          downloadStatus: DownloadStatus.completed,
+        ),
+      );
 
       if (!result) {
         logger('Extract failed, keeping aria2 result for retry: ${status.gid}');
@@ -382,32 +398,17 @@ class Downloader {
         downloadItem.copyWith(downloadStatus: DownloadStatus.failed),
       );
     }
-
-    try {
-      await Aria2.instance.removeDownloadResult(status.gid);
-      gidToItemId.remove(status.gid);
-    } catch (e) {
-      logger('Failed to clean aria2 result: ${status.gid}', error: e);
-    }
   }
 
   Future<bool> _extractDownload(DownloadItem downloadItem) async {
-    final itemId = downloadItem.id;
-
-    void updateItem(DownloadItem Function(DownloadItem) updater) {
-      final item = downloadBox.get(itemId);
-      if (item != null) {
-        downloadBox.put(itemId, updater(item));
-      }
-    }
-
     final List<String> path = [
       ...downloadItem.directory,
       downloadItem.filename,
     ];
 
-    updateItem(
-      (item) => item.copyWith(
+    downloadBox.put(
+      downloadItem.id,
+      downloadItem.copyWith(
         downloadStatus: DownloadStatus.completed,
         progress: 1.0,
       ),
@@ -415,8 +416,9 @@ class Downloader {
 
     await Future.delayed(const Duration(milliseconds: 300));
 
-    updateItem(
-      (item) => item.copyWith(extractStatus: ExtractStatus.extracting),
+    downloadBox.put(
+      downloadItem.id,
+      downloadItem.copyWith(extractStatus: ExtractStatus.extracting),
     );
 
     try {
@@ -424,18 +426,6 @@ class Downloader {
       logger('pkgName: $pkgName');
     } catch (e) {
       logger('getPkgName failed:', error: e);
-    }
-
-    bool deletePkgAfterUnpacking = false;
-
-    final configPath = await getConfigPath();
-    final filePath = pathJoin([...configPath, 'config.json']);
-    final file = File(filePath);
-
-    if (await file.exists()) {
-      String jsonString = await file.readAsString();
-      Map<String, dynamic> jsonData = jsonDecode(jsonString);
-      deletePkgAfterUnpacking = jsonData['deletePkgAfterUnpacking'] ?? false;
     }
 
     final result = await pkg2zip(
@@ -449,16 +439,16 @@ class Downloader {
     );
 
     if (result) {
-      updateItem(
-        (item) => item.copyWith(extractStatus: ExtractStatus.completed),
+      downloadBox.put(
+        downloadItem.id,
+        downloadItem.copyWith(extractStatus: ExtractStatus.completed),
       );
 
-      if (deletePkgAfterUnpacking) {
-        final file = File(pathJoin(path));
-        if (await file.exists()) {
-          await file.delete();
-        }
+      final file = File(pathJoin(path));
+      if (await file.exists()) {
+        await file.delete();
       }
+
       return true;
     } else {
       if (downloadItem.content.platform == Platform.ps3 &&
@@ -468,15 +458,16 @@ class Downloader {
         await downloadRAP(downloadItem.content);
       }
 
-      updateItem(
-        (item) => item.copyWith(
-          extractStatus: downloadItem.content.platform == Platform.ps3
-              ? ExtractStatus.notNeeded
-              : ExtractStatus.failed,
-        ),
+      final extractStatus = downloadItem.content.platform == Platform.ps3
+          ? ExtractStatus.notNeeded
+          : ExtractStatus.failed;
+
+      downloadBox.put(
+        downloadItem.id,
+        downloadItem.copyWith(extractStatus: extractStatus),
       );
 
-      return downloadItem.content.platform == Platform.ps3;
+      return extractStatus == ExtractStatus.notNeeded;
     }
   }
 }

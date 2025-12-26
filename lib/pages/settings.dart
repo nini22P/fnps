@@ -24,11 +24,7 @@ import 'package:fnps/utils/platform.dart';
 import 'package:fnps/utils/tsv_to_contents.dart';
 import 'package:fnps/utils/uri.dart';
 
-enum SyncStatus {
-  queue,
-  syncing,
-  done,
-}
+enum SyncStatus { queue, syncing, done }
 
 class SourceTile {
   final String title;
@@ -52,8 +48,9 @@ class Settings extends HookWidget {
     final t = getLocalizations(context);
     final configProvider = Provider.of<ConfigProvider>(context);
 
-    final getPackageInfo =
-        useMemoized(() async => await PackageInfo.fromPlatform());
+    final getPackageInfo = useMemoized(
+      () async => await PackageInfo.fromPlatform(),
+    );
 
     final packageInfo = useFuture(getPackageInfo).data;
 
@@ -67,8 +64,9 @@ class Settings extends HookWidget {
     final ps3Box = Hive.box<Content>(ps3BoxName);
     final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
 
-    final TextEditingController hmacKeyController =
-        TextEditingController(text: configProvider.config.hmacKey);
+    final TextEditingController hmacKeyController = TextEditingController(
+      text: configProvider.config.hmacKey,
+    );
 
     final sourceTileData = useState([
       SourceTile(
@@ -164,10 +162,13 @@ class Settings extends HookWidget {
     ]);
 
     final isSync = useMemoized(
-        () => sourceTileData.value.any((tile) =>
+      () => sourceTileData.value.any(
+        (tile) =>
             tile.status == SyncStatus.syncing ||
-            tile.status == SyncStatus.queue),
-        [sourceTileData.value]);
+            tile.status == SyncStatus.queue,
+      ),
+      [sourceTileData.value],
+    );
 
     Future<void> updateContents({
       required List<Content> contents,
@@ -177,32 +178,37 @@ class Settings extends HookWidget {
     }) async {
       switch (platform) {
         case Platform.psv:
-          final values = [...psvBox.values]
-              .where((content) => content.category != category);
+          final values = [
+            ...psvBox.values,
+          ].where((content) => content.category != category);
           await psvBox.clear();
           await psvBox.addAll([...values, ...contents]);
           break;
         case Platform.psp:
-          final values = [...pspBox.values]
-              .where((content) => content.category != category);
+          final values = [
+            ...pspBox.values,
+          ].where((content) => content.category != category);
           await pspBox.clear();
           await pspBox.addAll([...values, ...contents]);
           break;
         case Platform.psm:
-          final values = [...psmBox.values]
-              .where((content) => content.category != category);
+          final values = [
+            ...psmBox.values,
+          ].where((content) => content.category != category);
           await psmBox.clear();
           await psmBox.addAll([...values, ...contents]);
           break;
         case Platform.psx:
-          final values = [...psxBox.values]
-              .where((content) => content.category != category);
+          final values = [
+            ...psxBox.values,
+          ].where((content) => content.category != category);
           await psxBox.clear();
           await psxBox.addAll([...values, ...contents]);
           break;
         case Platform.ps3:
-          final values = [...ps3Box.values]
-              .where((content) => content.category != category);
+          final values = [
+            ...ps3Box.values,
+          ].where((content) => content.category != category);
           await ps3Box.clear();
           await ps3Box.addAll([...values, ...contents]);
           break;
@@ -211,30 +217,39 @@ class Settings extends HookWidget {
       }
 
       final filteredSources = [...configProvider.config.sources]
-          .whereNot((source) =>
-              source.platform == platform && source.category == category)
-          .toList();
-      configProvider.updateConfig(configProvider.config.copyWith(
-        sources: [
-          ...filteredSources,
-          Source(
-            platform: platform,
-            category: category,
-            updateTime: DateTime.now().toUtc(),
-            url: url,
+          .whereNot(
+            (source) =>
+                source.platform == platform && source.category == category,
           )
-        ],
-      ));
+          .toList();
+      configProvider.updateConfig(
+        configProvider.config.copyWith(
+          sources: [
+            ...filteredSources,
+            Source(
+              platform: platform,
+              category: category,
+              updateTime: DateTime.now().toUtc(),
+              url: url,
+            ),
+          ],
+        ),
+      );
     }
 
     void updateSourceTileData(SourceTile tile) {
       final updatedTiles = sourceTileData.value
-          .where((item) => !(item.platform == tile.platform &&
-              item.category == tile.category))
+          .where(
+            (item) =>
+                !(item.platform == tile.platform &&
+                    item.category == tile.category),
+          )
           .toList();
 
-      int insertIndex = sourceTileData.value.indexWhere((item) =>
-          item.platform == tile.platform && item.category == tile.category);
+      int insertIndex = sourceTileData.value.indexWhere(
+        (item) =>
+            item.platform == tile.platform && item.category == tile.category,
+      );
 
       if (insertIndex == -1) {
         updatedTiles.add(tile);
@@ -246,18 +261,22 @@ class Settings extends HookWidget {
     }
 
     Source? getSource(Platform platform, Category category) =>
-        configProvider.config.sources.firstWhereOrNull((source) =>
-            source.platform == platform && source.category == category);
+        configProvider.config.sources.firstWhereOrNull(
+          (source) =>
+              source.platform == platform && source.category == category,
+        );
 
     Future<void> syncSource(SourceTile tile, String url) async {
       String? content;
       logger('Downloading ${tile.platform.name} ${tile.category.name}...');
-      updateSourceTileData(SourceTile(
-        title: tile.title,
-        platform: tile.platform,
-        category: tile.category,
-        status: SyncStatus.syncing,
-      ));
+      updateSourceTileData(
+        SourceTile(
+          title: tile.title,
+          platform: tile.platform,
+          category: tile.category,
+          status: SyncStatus.syncing,
+        ),
+      );
       try {
         Dio dio = Dio();
 
@@ -269,29 +288,38 @@ class Settings extends HookWidget {
         if (response.statusCode == 200) {
           content = utf8.decode(response.data);
         } else {
-          updateSourceTileData(SourceTile(
+          updateSourceTileData(
+            SourceTile(
+              title: tile.title,
+              platform: tile.platform,
+              category: tile.category,
+              status: SyncStatus.done,
+            ),
+          );
+          logger(
+            'Download failed: ${response.statusCode}',
+            error: response.statusMessage,
+          );
+        }
+      } catch (e) {
+        updateSourceTileData(
+          SourceTile(
             title: tile.title,
             platform: tile.platform,
             category: tile.category,
             status: SyncStatus.done,
-          ));
-          logger('Download failed: ${response.statusCode}',
-              error: response.statusMessage);
-        }
-      } catch (e) {
-        updateSourceTileData(SourceTile(
-          title: tile.title,
-          platform: tile.platform,
-          category: tile.category,
-          status: SyncStatus.done,
-        ));
+          ),
+        );
         logger('Download failed:', error: e);
       }
 
       if (content != null) {
         logger('Parsing ${tile.platform.name} ${tile.category.name}...');
-        final contents =
-            await tsvToContents(content, tile.platform, tile.category);
+        final contents = await tsvToContents(
+          content,
+          tile.platform,
+          tile.category,
+        );
         await updateContents(
           contents: contents,
           platform: tile.platform,
@@ -299,12 +327,14 @@ class Settings extends HookWidget {
           url: url,
         );
 
-        updateSourceTileData(SourceTile(
-          title: tile.title,
-          platform: tile.platform,
-          category: tile.category,
-          status: SyncStatus.done,
-        ));
+        updateSourceTileData(
+          SourceTile(
+            title: tile.title,
+            platform: tile.platform,
+            category: tile.category,
+            status: SyncStatus.done,
+          ),
+        );
         logger('Synced ${tile.platform.name} ${tile.category.name}');
       }
     }
@@ -336,10 +366,12 @@ class Settings extends HookWidget {
       String? content;
 
       if (isAndroid) {
-        SafDocumentFile? file = await SafUtil().pickFile(mimeTypes: [
-          'text/tab-separated-values',
-          'text/comma-separated-values',
-        ]);
+        SafDocumentFile? file = await SafUtil().pickFile(
+          mimeTypes: [
+            'text/tab-separated-values',
+            'text/comma-separated-values',
+          ],
+        );
         if (file != null) {
           List<int> fileBytes = await SafStream().readFileBytes(file.uri);
           content = utf8.decode(fileBytes);
@@ -379,9 +411,11 @@ class Settings extends HookWidget {
       ];
 
       final contentsLength = contents
-          .where((content) =>
-              content.platform == tile.platform &&
-              content.category == tile.category)
+          .where(
+            (content) =>
+                content.platform == tile.platform &&
+                content.category == tile.category,
+          )
           .length;
 
       return ListTile(
@@ -404,29 +438,37 @@ class Settings extends HookWidget {
               ),
             ),
             if (source?.updateTime != null && contentsLength > 0)
-              Text(source!.updateTime!
-                  .toLocal()
-                  .toIso8601String()
-                  .replaceAll('T', ' ')
-                  .split('.')
-                  .first),
+              Text(
+                source!.updateTime!
+                    .toLocal()
+                    .toIso8601String()
+                    .replaceAll('T', ' ')
+                    .split('.')
+                    .first,
+              ),
           ],
         ),
-        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (url != null)
-            IconButton(
-              tooltip: t.sync,
-              icon: const Icon(Icons.sync),
-              onPressed: tile.status != SyncStatus.done
-                  ? null
-                  : () => syncSource(tile, url),
-            ),
-        ]),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (url != null)
+              IconButton(
+                tooltip: t.sync,
+                icon: const Icon(Icons.sync),
+                onPressed: tile.status != SyncStatus.done
+                    ? null
+                    : () => syncSource(tile, url),
+              ),
+          ],
+        ),
         onTap: tile.status != SyncStatus.done || source == null
             ? null
             : () async {
-                final result =
-                    await showSourceDialog(context, source, tile.title);
+                final result = await showSourceDialog(
+                  context,
+                  source,
+                  tile.title,
+                );
                 if (result == null) return;
                 if (result.url == null) {
                   await selectLocalFile(tile.platform, tile.category);
@@ -467,10 +509,7 @@ class Settings extends HookWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.settings),
-        forceMaterialTransparency: true,
-      ),
+      appBar: AppBar(title: Text(t.settings), forceMaterialTransparency: true),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -490,9 +529,7 @@ class Settings extends HookWidget {
                 context: context,
                 builder: (BuildContext context) => AlertDialog(
                   title: Text(t.hmac_key),
-                  content: TextField(
-                    controller: hmacKeyController,
-                  ),
+                  content: TextField(controller: hmacKeyController),
                   actions: <Widget>[
                     TextButton(
                       onPressed: () => Navigator.pop(context, 'Cancal'),
@@ -506,21 +543,6 @@ class Settings extends HookWidget {
                       child: Text(t.ok),
                     ),
                   ],
-                ),
-              ),
-            ),
-            ListTile(
-              title: Text(t.delete_pkg_after_unpacking),
-              onTap: () => configProvider.updateConfig(
-                configProvider.config.copyWith(
-                    deletePkgAfterUnpacking:
-                        !configProvider.config.deletePkgAfterUnpacking),
-              ),
-              trailing: Switch(
-                value: configProvider.config.deletePkgAfterUnpacking,
-                onChanged: (value) => configProvider.updateConfig(
-                  configProvider.config
-                      .copyWith(deletePkgAfterUnpacking: value),
                 ),
               ),
             ),

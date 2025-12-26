@@ -5,16 +5,9 @@ import 'package:fnps/models/content.dart';
 part 'config.freezed.dart';
 part 'config.g.dart';
 
-enum SortBy {
-  name,
-  titleID,
-  lastModificationDate,
-}
+enum SortBy { name, titleID, lastModificationDate }
 
-enum SortOrder {
-  asc,
-  desc,
-}
+enum SortOrder { asc, desc }
 
 @freezed
 abstract class Config with _$Config {
@@ -26,7 +19,6 @@ abstract class Config with _$Config {
     String? hmacKey,
     @Default(SortBy.name) SortBy sortBy,
     @Default(SortOrder.asc) SortOrder sortOrder,
-    @Default(true) bool deletePkgAfterUnpacking,
   }) = _Config;
 
   factory Config.fromJson(Map<String, dynamic> json) => _$ConfigFromJson(json);
@@ -115,7 +107,6 @@ abstract class Config with _$Config {
     hmacKey: Env().hmacKey,
     sortBy: SortBy.name,
     sortOrder: SortOrder.asc,
-    deletePkgAfterUnpacking: true,
   );
 }
 
