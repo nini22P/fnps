@@ -4,4 +4,4 @@ String? fileSizeConv(int? size) => size == 0 || size == null
     ? '${(size / 1024 / 1024 / 1024).toStringAsFixed(2)} GB'
     : size > 1024 * 1024
     ? '${(size / 1024 / 1024).toStringAsFixed(2)} MB'
-    : '${(size / 1024)} KB';
+    : '${(size / 1024).toStringAsFixed(0)} KB';

@@ -224,9 +224,7 @@ class ContentList extends HookWidget {
                       ),
                     if (downloadItem?.downloadStatus ==
                             DownloadStatus.completed &&
-                        downloadItem?.extractStatus !=
-                            ExtractStatus.extracting &&
-                        downloadItem?.extractStatus != ExtractStatus.notNeeded)
+                        downloadItem?.extractStatus == ExtractStatus.failed)
                       PopupMenuItem(
                         child: Text(t.re_extract),
                         onTap: () => downloader.add([content]),

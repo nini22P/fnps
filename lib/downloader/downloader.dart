@@ -24,7 +24,6 @@ class Downloader {
 
   final Queue<Content> _queue = Queue();
   int maxConcurrentTasks = 3;
-  int runningTasks = 0;
 
   final Map<String, String> gidToItemId = {}; // gid -> downloadItem.id
 
@@ -190,14 +189,15 @@ class Downloader {
   }
 
   Future<void> _start() async {
-    if (runningTasks >= maxConcurrentTasks || _queue.isEmpty) {
+    if (gidToItemId.length >= maxConcurrentTasks || _queue.isEmpty) {
       return;
     }
 
-    while (runningTasks < maxConcurrentTasks && _queue.isNotEmpty) {
+    while (gidToItemId.length < maxConcurrentTasks && _queue.isNotEmpty) {
       final content = _queue.removeFirst();
-      runningTasks++;
-      logger('Running task: $runningTasks');
+      logger(
+        'Starting task: ${gidToItemId.length + 1} / $maxConcurrentTasks, Queue size: ${_queue.length}',
+      );
       download(content);
       await Future.delayed(const Duration(milliseconds: 500), null);
     }
@@ -303,12 +303,20 @@ class Downloader {
 
   Future<void> download(Content content) async {
     final String? url = content.pkgDirectLink;
-    if (url == null) return;
+    if (url == null) {
+      _start();
+      return;
+    }
+
+    bool success = false;
 
     try {
       DownloadItem? downloadItem = downloadBox.get(content.getID());
       final id = downloadItem?.id;
-      if (downloadItem == null || id == null) return;
+      if (downloadItem == null || id == null) {
+        _start();
+        return;
+      }
 
       logger('Starting download for ${content.name}');
 
@@ -323,6 +331,7 @@ class Downloader {
       final String gid = await Aria2.instance.addUri(url, dir, filename);
 
       gidToItemId[gid] = id;
+      success = true;
 
       logger('Download added to aria2: gid=$gid, file=$filename');
 
@@ -339,8 +348,9 @@ class Downloader {
         );
       }
     } finally {
-      runningTasks--;
-      _start();
+      if (!success) {
+        _start();
+      }
     }
   }
 
@@ -369,9 +379,12 @@ class Downloader {
     final downloadItem = downloadBox.get(itemId);
     if (downloadItem == null) return;
 
+    bool shouldStartNext = false;
+
     try {
       await Aria2.instance.removeDownloadResult(status.gid);
       gidToItemId.remove(status.gid);
+      shouldStartNext = true;
     } catch (e) {
       logger('Failed to clean aria2 result: ${status.gid}', error: e);
     }
@@ -379,6 +392,7 @@ class Downloader {
     if (downloadItem.extractStatus == ExtractStatus.extracting ||
         downloadItem.extractStatus == ExtractStatus.completed ||
         downloadItem.extractStatus == ExtractStatus.notNeeded) {
+      if (shouldStartNext) _start();
       return;
     }
 
@@ -409,6 +423,10 @@ class Downloader {
         downloadItem.id,
         downloadItem.copyWith(downloadStatus: DownloadStatus.failed),
       );
+    }
+
+    if (shouldStartNext) {
+      _start();
     }
   }
 
