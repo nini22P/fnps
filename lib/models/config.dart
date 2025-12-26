@@ -107,8 +107,8 @@ abstract class Config with _$Config {
     categories: [Category.game],
     regions: Region.values,
     hmacKey: Env().hmacKey,
-    sortBy: SortBy.name,
-    sortOrder: SortOrder.asc,
+    sortBy: SortBy.lastModificationDate,
+    sortOrder: SortOrder.desc,
   );
 }
 

@@ -75,7 +75,9 @@ class ContentList extends HookWidget {
                   downloadItem.downloadStatus != DownloadStatus.completed)
                 CustomBadge(
                   text: () {
-                    final progress = (downloadItem.totalLength > 0)
+                    final progress =
+                        (downloadItem.totalLength > 0 &&
+                            downloadItem.completedLength > 0)
                         ? (downloadItem.completedLength /
                                   downloadItem.totalLength *
                                   100)

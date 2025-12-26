@@ -40,7 +40,7 @@
   "grant_storage_permission": "授予存储权限",
   "hmac_key": "HMAC 密钥",
   "info": "信息",
-  "last_modification_date": "最后修改时间",
+  "last_modification_date": "修改时间",
   "list": "列表",
   "local": "本地",
   "name": "名称",

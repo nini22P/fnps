@@ -34,29 +34,41 @@ class ContentsFilter extends HookWidget {
             segments: [
               ButtonSegment<SortBy>(
                 value: SortBy.name,
-                label: Text(t.name),
+                label: FittedBox(fit: BoxFit.scaleDown, child: Text(t.name)),
                 icon: sortBy == SortBy.name
-                    ? Icon(sortOrder == SortOrder.asc
-                        ? Icons.arrow_upward_rounded
-                        : Icons.arrow_downward_rounded)
+                    ? Icon(
+                        sortOrder == SortOrder.asc
+                            ? Icons.arrow_upward_rounded
+                            : Icons.arrow_downward_rounded,
+                      )
                     : null,
               ),
               ButtonSegment<SortBy>(
                 value: SortBy.titleID,
-                label: Text(t.title_id),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(t.title_id),
+                ),
                 icon: sortBy == SortBy.titleID
-                    ? Icon(sortOrder == SortOrder.asc
-                        ? Icons.arrow_upward_rounded
-                        : Icons.arrow_downward_rounded)
+                    ? Icon(
+                        sortOrder == SortOrder.asc
+                            ? Icons.arrow_upward_rounded
+                            : Icons.arrow_downward_rounded,
+                      )
                     : null,
               ),
               ButtonSegment<SortBy>(
                 value: SortBy.lastModificationDate,
-                label: Text(t.last_modification_date),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(t.last_modification_date),
+                ),
                 icon: sortBy == SortBy.lastModificationDate
-                    ? Icon(sortOrder == SortOrder.asc
-                        ? Icons.arrow_upward_rounded
-                        : Icons.arrow_downward_rounded)
+                    ? Icon(
+                        sortOrder == SortOrder.asc
+                            ? Icons.arrow_upward_rounded
+                            : Icons.arrow_downward_rounded,
+                      )
                     : null,
               ),
             ],
@@ -78,18 +90,17 @@ class ContentsFilter extends HookWidget {
               }
 
               configProvider.updateConfig(
-                config.copyWith(
-                  sortBy: sortBy_,
-                  sortOrder: sortOrder_,
-                ),
+                config.copyWith(sortBy: sortBy_, sortOrder: sortOrder_),
               );
             },
           ),
         ),
         Container(
           margin: const EdgeInsets.only(left: 8),
-          child:
-              Text(t.platform, style: Theme.of(context).textTheme.titleSmall),
+          child: Text(
+            t.platform,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
         ),
         Wrap(
           spacing: 8,
@@ -102,24 +113,29 @@ class ContentsFilter extends HookWidget {
                 selected: platforms.contains(platform),
                 onSelected: (bool selected) {
                   if (platforms.contains(platform)) {
-                    configProvider.updateConfig(config.copyWith(
+                    configProvider.updateConfig(
+                      config.copyWith(
                         platforms: platforms
                             .where((element) => element != platform)
-                            .toList()));
+                            .toList(),
+                      ),
+                    );
                   } else {
-                    configProvider.updateConfig(config.copyWith(
-                      platforms: [...platforms, platform],
-                    ));
+                    configProvider.updateConfig(
+                      config.copyWith(platforms: [...platforms, platform]),
+                    );
                   }
                 },
               ),
-            )
+            ),
           ],
         ),
         Container(
           margin: const EdgeInsets.only(left: 8),
-          child:
-              Text(t.category, style: Theme.of(context).textTheme.titleSmall),
+          child: Text(
+            t.category,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
         ),
         Wrap(
           spacing: 8,
@@ -135,18 +151,23 @@ class ContentsFilter extends HookWidget {
                     selected: categories.contains(category),
                     onSelected: (bool selected) {
                       if (categories.contains(category)) {
-                        configProvider.updateConfig(config.copyWith(
+                        configProvider.updateConfig(
+                          config.copyWith(
                             categories: categories
                                 .where((element) => element != category)
-                                .toList()));
+                                .toList(),
+                          ),
+                        );
                       } else {
-                        configProvider.updateConfig(config.copyWith(
-                          categories: [...categories, category],
-                        ));
+                        configProvider.updateConfig(
+                          config.copyWith(
+                            categories: [...categories, category],
+                          ),
+                        );
                       }
                     },
                   ),
-                )
+                ),
           ],
         ),
         Container(
@@ -164,18 +185,21 @@ class ContentsFilter extends HookWidget {
                 selected: regions.contains(region),
                 onSelected: (bool selected) {
                   if (regions.contains(region)) {
-                    configProvider.updateConfig(config.copyWith(
+                    configProvider.updateConfig(
+                      config.copyWith(
                         regions: regions
                             .where((element) => element != region)
-                            .toList()));
+                            .toList(),
+                      ),
+                    );
                   } else {
-                    configProvider.updateConfig(config.copyWith(
-                      regions: [...regions, region],
-                    ));
+                    configProvider.updateConfig(
+                      config.copyWith(regions: [...regions, region]),
+                    );
                   }
                 },
               ),
-            )
+            ),
           ],
         ),
       ],

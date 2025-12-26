@@ -131,7 +131,7 @@ class ContentPage extends HookWidget {
                     tabs: tabs.map((e) => Tab(text: e.title)).toList(),
                   ),
             scrolledUnderElevation: 0.0,
-            backgroundColor: Colors.transparent,
+            backgroundColor: Theme.of(context).colorScheme.surface,
           ),
           body: isWideScreen
               ? Row(
