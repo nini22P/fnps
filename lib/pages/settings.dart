@@ -24,22 +24,6 @@ import 'package:fnps/utils/platform.dart';
 import 'package:fnps/utils/tsv_to_contents.dart';
 import 'package:fnps/utils/uri.dart';
 
-enum SyncStatus { queue, syncing, done }
-
-class SourceTile {
-  final String title;
-  final Platform platform;
-  final Category category;
-  final SyncStatus status;
-
-  SourceTile({
-    required this.title,
-    required this.platform,
-    required this.category,
-    required this.status,
-  });
-}
-
 class Settings extends HookWidget {
   const Settings({super.key});
 
@@ -54,120 +38,17 @@ class Settings extends HookWidget {
 
     final packageInfo = useFuture(getPackageInfo).data;
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
-
-    final psvBox = Hive.box<Content>(psvBoxName);
-    final pspBox = Hive.box<Content>(pspBoxName);
-    final psmBox = Hive.box<Content>(psmBoxName);
-    final psxBox = Hive.box<Content>(psxBoxName);
-    final ps3Box = Hive.box<Content>(ps3BoxName);
-    final downloadBox = Hive.box<DownloadItem>(downloadBoxName);
-
     final TextEditingController hmacKeyController = TextEditingController(
       text: configProvider.config.hmacKey,
     );
 
-    final sourceTileData = useState([
-      SourceTile(
-        title: 'PSV ${t.game_list}',
-        platform: Platform.psv,
-        category: Category.game,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PSV ${t.dlc_list}',
-        platform: Platform.psv,
-        category: Category.dlc,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PSV ${t.theme_list}',
-        platform: Platform.psv,
-        category: Category.theme,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PSV ${t.update_list}',
-        platform: Platform.psv,
-        category: Category.update,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PSV ${t.demo_list}',
-        platform: Platform.psv,
-        category: Category.demo,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PSP ${t.game_list}',
-        platform: Platform.psp,
-        category: Category.game,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PSP ${t.dlc_list}',
-        platform: Platform.psp,
-        category: Category.dlc,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PSP ${t.theme_list}',
-        platform: Platform.psp,
-        category: Category.theme,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PSP ${t.update_list}',
-        platform: Platform.psp,
-        category: Category.update,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PSM ${t.game_list}',
-        platform: Platform.psm,
-        category: Category.game,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PSX ${t.game_list}',
-        platform: Platform.psx,
-        category: Category.game,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PS3 ${t.game_list}',
-        platform: Platform.ps3,
-        category: Category.game,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PS3 ${t.dlc_list}',
-        platform: Platform.ps3,
-        category: Category.dlc,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PS3 ${t.theme_list}',
-        platform: Platform.ps3,
-        category: Category.theme,
-        status: SyncStatus.done,
-      ),
-      SourceTile(
-        title: 'PS3 ${t.demo_list}',
-        platform: Platform.ps3,
-        category: Category.demo,
-        status: SyncStatus.done,
-      ),
-    ]);
-
     final isSync = useMemoized(
-      () => sourceTileData.value.any(
-        (tile) =>
-            tile.status == SyncStatus.syncing ||
-            tile.status == SyncStatus.queue,
+      () => configProvider.config.sources.any(
+        (source) =>
+            source.syncStatus == SyncStatus.syncing ||
+            source.syncStatus == SyncStatus.queue,
       ),
-      [sourceTileData.value],
+      [configProvider.config.sources],
     );
 
     Future<void> updateContents({
@@ -176,6 +57,12 @@ class Settings extends HookWidget {
       required Category category,
       String? url,
     }) async {
+      final psvBox = Hive.box<Content>(psvBoxName);
+      final pspBox = Hive.box<Content>(pspBoxName);
+      final psmBox = Hive.box<Content>(psmBoxName);
+      final psxBox = Hive.box<Content>(psxBoxName);
+      final ps3Box = Hive.box<Content>(ps3BoxName);
+
       switch (platform) {
         case Platform.psv:
           final values = [
@@ -231,52 +118,36 @@ class Settings extends HookWidget {
               category: category,
               updateTime: DateTime.now().toUtc(),
               url: url,
+              count: contents.length,
+              syncStatus: SyncStatus.done,
             ),
           ],
         ),
       );
     }
 
-    void updateSourceTileData(SourceTile tile) {
-      final updatedTiles = sourceTileData.value
-          .where(
-            (item) =>
-                !(item.platform == tile.platform &&
-                    item.category == tile.category),
-          )
-          .toList();
+    void updateSourceStatus(
+      Platform platform,
+      Category category,
+      SyncStatus status,
+    ) {
+      final updatedSources = configProvider.config.sources.map((source) {
+        if (source.platform == platform && source.category == category) {
+          return source.copyWith(syncStatus: status);
+        }
+        return source;
+      }).toList();
 
-      int insertIndex = sourceTileData.value.indexWhere(
-        (item) =>
-            item.platform == tile.platform && item.category == tile.category,
+      configProvider.updateConfig(
+        configProvider.config.copyWith(sources: updatedSources),
       );
-
-      if (insertIndex == -1) {
-        updatedTiles.add(tile);
-      } else {
-        updatedTiles.insert(insertIndex, tile);
-      }
-
-      sourceTileData.value = updatedTiles;
     }
 
-    Source? getSource(Platform platform, Category category) =>
-        configProvider.config.sources.firstWhereOrNull(
-          (source) =>
-              source.platform == platform && source.category == category,
-        );
-
-    Future<void> syncSource(SourceTile tile, String url) async {
+    Future<void> syncSource(Source source, String url) async {
       String? content;
-      logger('Downloading ${tile.platform.name} ${tile.category.name}...');
-      updateSourceTileData(
-        SourceTile(
-          title: tile.title,
-          platform: tile.platform,
-          category: tile.category,
-          status: SyncStatus.syncing,
-        ),
-      );
+      logger('Downloading ${source.platform.name} ${source.category.name}...');
+      updateSourceStatus(source.platform, source.category, SyncStatus.syncing);
+
       try {
         Dio dio = Dio();
 
@@ -288,13 +159,10 @@ class Settings extends HookWidget {
         if (response.statusCode == 200) {
           content = utf8.decode(response.data);
         } else {
-          updateSourceTileData(
-            SourceTile(
-              title: tile.title,
-              platform: tile.platform,
-              category: tile.category,
-              status: SyncStatus.done,
-            ),
+          updateSourceStatus(
+            source.platform,
+            source.category,
+            source.count > 0 ? SyncStatus.done : SyncStatus.notSyncing,
           );
           logger(
             'Download failed: ${response.statusCode}',
@@ -302,62 +170,48 @@ class Settings extends HookWidget {
           );
         }
       } catch (e) {
-        updateSourceTileData(
-          SourceTile(
-            title: tile.title,
-            platform: tile.platform,
-            category: tile.category,
-            status: SyncStatus.done,
-          ),
+        updateSourceStatus(
+          source.platform,
+          source.category,
+          source.count > 0 ? SyncStatus.done : SyncStatus.notSyncing,
         );
         logger('Download failed:', error: e);
       }
 
       if (content != null) {
-        logger('Parsing ${tile.platform.name} ${tile.category.name}...');
+        logger('Parsing ${source.platform.name} ${source.category.name}...');
         final contents = await tsvToContents(
           content,
-          tile.platform,
-          tile.category,
+          source.platform,
+          source.category,
         );
         await updateContents(
           contents: contents,
-          platform: tile.platform,
-          category: tile.category,
+          platform: source.platform,
+          category: source.category,
           url: url,
         );
-
-        updateSourceTileData(
-          SourceTile(
-            title: tile.title,
-            platform: tile.platform,
-            category: tile.category,
-            status: SyncStatus.done,
-          ),
-        );
-        logger('Synced ${tile.platform.name} ${tile.category.name}');
+        logger('Synced ${source.platform.name} ${source.category.name}');
       }
     }
 
     Future<void> syncAllSources() async {
       logger('Syncing all sources...');
-      sourceTileData.value = sourceTileData.value.map((tile) {
-        final source = getSource(tile.platform, tile.category);
-        if (source != null && source.url != null) {
-          return SourceTile(
-            title: tile.title,
-            platform: tile.platform,
-            category: tile.category,
-            status: SyncStatus.queue,
-          );
-        } else {
-          return tile;
+
+      final updatedSources = configProvider.config.sources.map((source) {
+        if (source.url != null) {
+          return source.copyWith(syncStatus: SyncStatus.queue);
         }
+        return source;
       }).toList();
-      for (var tile in sourceTileData.value) {
-        final source = getSource(tile.platform, tile.category);
-        if (source != null && source.url != null) {
-          await syncSource(tile, source.url!);
+
+      configProvider.updateConfig(
+        configProvider.config.copyWith(sources: updatedSources),
+      );
+
+      for (var source in configProvider.config.sources) {
+        if (source.url != null) {
+          await syncSource(source, source.url!);
         }
       }
     }
@@ -398,48 +252,43 @@ class Settings extends HookWidget {
       }
     }
 
-    ListTile buildSourceTile(SourceTile tile) {
-      final source = getSource(tile.platform, tile.category);
-      final url = source?.url;
+    String getSourceTitle(Source source) {
+      final platformName = source.platform.name.toUpperCase();
+      final categoryName = switch (source.category) {
+        Category.game => t.game_list,
+        Category.dlc => t.dlc_list,
+        Category.theme => t.theme_list,
+        Category.update => t.update_list,
+        Category.demo => t.demo_list,
+      };
+      return '$platformName $categoryName';
+    }
 
-      final contents = [
-        ...psvBox.values,
-        ...pspBox.values,
-        ...psmBox.values,
-        ...psxBox.values,
-        ...ps3Box.values,
-      ];
-
-      final contentsLength = contents
-          .where(
-            (content) =>
-                content.platform == tile.platform &&
-                content.category == tile.category,
-          )
-          .length;
+    ListTile buildSourceTile(Source source) {
+      final url = source.url;
+      final cont = source.count;
+      final title = getSourceTitle(source);
 
       return ListTile(
-        title: Text(tile.title),
+        title: Text(title),
         subtitle: Row(
           spacing: 4,
           children: [
             CustomBadge(text: url == null ? t.local : t.remote),
-            if (contentsLength > 0)
-              CustomBadge(text: contentsLength.toString()),
-            if (tile.status == SyncStatus.done && contentsLength == 0)
+            if (cont > 0) CustomBadge(text: cont.toString()),
+            if (source.syncStatus == SyncStatus.notSyncing)
               CustomBadge(text: url == null ? t.not_added : t.not_syncing),
-            if (tile.status == SyncStatus.syncing) CustomBadge(text: t.syncing),
-            if (tile.status == SyncStatus.queue) CustomBadge(text: t.queuing),
-            Expanded(
-              child: Text(
-                !isMobile && url != null ? url : '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            if (source.syncStatus == SyncStatus.syncing)
+              CustomBadge(text: t.syncing),
+            if (source.syncStatus == SyncStatus.queue)
+              CustomBadge(text: t.queuing),
+            if (url != null)
+              Expanded(
+                child: Text(url, maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
-            ),
-            if (source?.updateTime != null && contentsLength > 0)
+            if (source.updateTime != null && cont > 0)
               Text(
-                source!.updateTime!
+                source.updateTime!
                     .toLocal()
                     .toIso8601String()
                     .replaceAll('T', ' ')
@@ -455,56 +304,81 @@ class Settings extends HookWidget {
               IconButton(
                 tooltip: t.sync,
                 icon: const Icon(Icons.sync),
-                onPressed: tile.status != SyncStatus.done
+                onPressed:
+                    source.syncStatus == SyncStatus.syncing ||
+                        source.syncStatus == SyncStatus.queue
                     ? null
-                    : () => syncSource(tile, url),
+                    : () => syncSource(source, url),
               ),
           ],
         ),
-        onTap: tile.status != SyncStatus.done || source == null
+        onTap:
+            source.syncStatus == SyncStatus.syncing ||
+                source.syncStatus == SyncStatus.queue
             ? null
             : () async {
-                final result = await showSourceDialog(
-                  context,
-                  source,
-                  tile.title,
-                );
+                final result = await showSourceDialog(context, source, title);
                 if (result == null) return;
                 if (result.url == null) {
-                  await selectLocalFile(tile.platform, tile.category);
+                  await selectLocalFile(source.platform, source.category);
                 } else {
-                  await syncSource(tile, result.url!);
+                  await syncSource(source, result.url!);
                 }
               },
       );
     }
 
-    tilesBuilder() {
+    final sourceOrder = [
+      (Platform.psv, Category.game),
+      (Platform.psv, Category.dlc),
+      (Platform.psv, Category.theme),
+      (Platform.psv, Category.update),
+      (Platform.psv, Category.demo),
+      (Platform.psp, Category.game),
+      (Platform.psp, Category.dlc),
+      (Platform.psp, Category.theme),
+      (Platform.psp, Category.update),
+      (Platform.psm, Category.game),
+      (Platform.psx, Category.game),
+      (Platform.ps3, Category.game),
+      (Platform.ps3, Category.dlc),
+      (Platform.ps3, Category.theme),
+      (Platform.ps3, Category.demo),
+    ];
+
+    final tiles = useMemoized(() {
       List<Widget> result = [];
-      for (var tile in sourceTileData.value) {
-        if ((tile.platform == Platform.psp ||
-                tile.platform == Platform.psm ||
-                tile.platform == Platform.ps3) &&
-            tile.category == Category.game) {
+
+      for (var (platform, category) in sourceOrder) {
+        if ((platform == Platform.psp ||
+                platform == Platform.psm ||
+                platform == Platform.ps3) &&
+            category == Category.game) {
           result.add(const Divider());
         }
-        result.add(buildSourceTile(tile));
-      }
-      return result;
-    }
 
-    final List<Widget> tiles = tilesBuilder();
+        final source = configProvider.config.sources.firstWhereOrNull(
+          (s) => s.platform == platform && s.category == category,
+        );
+
+        if (source != null) {
+          result.add(buildSourceTile(source));
+        }
+      }
+
+      return result;
+    }, [configProvider.config.sources]);
 
     Future<void> updateHmacKey(String hmacKey) async => configProvider
         .updateConfig(configProvider.config.copyWith(hmacKey: hmacKey));
 
     Future<void> resetConfig() async {
-      await psvBox.clear();
-      await pspBox.clear();
-      await psmBox.clear();
-      await psxBox.clear();
-      await ps3Box.clear();
-      await downloadBox.clear();
+      await Hive.box<Content>(psvBoxName).clear();
+      await Hive.box<Content>(pspBoxName).clear();
+      await Hive.box<Content>(psmBoxName).clear();
+      await Hive.box<Content>(psxBoxName).clear();
+      await Hive.box<Content>(ps3BoxName).clear();
+      await Hive.box<DownloadItem>(downloadBoxName).clear();
       await configProvider.resetConfig();
     }
 

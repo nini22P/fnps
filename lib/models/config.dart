@@ -9,6 +9,8 @@ enum SortBy { name, titleID, lastModificationDate }
 
 enum SortOrder { asc, desc }
 
+enum SyncStatus { notSyncing, queue, syncing, done }
+
 @freezed
 abstract class Config with _$Config {
   const factory Config({
@@ -117,6 +119,8 @@ abstract class Source with _$Source {
     required Category category,
     DateTime? updateTime,
     String? url,
+    @Default(0) int count,
+    @Default(SyncStatus.notSyncing) SyncStatus syncStatus,
   }) = _Source;
 
   factory Source.fromJson(Map<String, dynamic> json) => _$SourceFromJson(json);
