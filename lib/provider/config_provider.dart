@@ -14,7 +14,22 @@ class ConfigProvider with ChangeNotifier {
 
     if (await file.exists()) {
       String contents = await file.readAsString();
-      _config = Config.fromJson(json.decode(contents));
+      final config = Config.fromJson(json.decode(contents));
+      _config = config.copyWith(
+        sources: config.sources
+            .map(
+              (source) =>
+                  source.syncStatus == SyncStatus.syncing ||
+                      source.syncStatus == SyncStatus.queue
+                  ? source.copyWith(
+                      syncStatus: source.count > 0
+                          ? SyncStatus.done
+                          : SyncStatus.notSyncing,
+                    )
+                  : source,
+            )
+            .toList(),
+      );
       notifyListeners();
     }
   }
