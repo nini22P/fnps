@@ -106,7 +106,7 @@ class Downloads extends HookWidget {
 
           return ListTile(
             leading: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(4),
               child: AspectRatio(
                 aspectRatio: 1,
                 child: CachedNetworkImage(

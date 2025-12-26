@@ -40,14 +40,17 @@ class ContentList extends HookWidget {
       padding: const EdgeInsets.only(bottom: 96),
       itemBuilder: (context, index) {
         final content = contents[index];
-        final DownloadItem? downloadItem = downloads.get(content.getID());
+        final contentId = content.getID();
+        final DownloadItem? downloadItem = contentId != null
+            ? downloads.get(contentId)
+            : null;
         return ListTile(
           leading: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(4),
             child: AspectRatio(
               aspectRatio: 1,
               child: CachedNetworkImage(
-                imageUrl: getContentIcon(content, size: 96)!,
+                imageUrl: getContentIcon(content, size: 96) ?? '',
                 fit: BoxFit.contain,
                 placeholder: (context, url) =>
                     const SizedBox(child: Center(child: Icon(Icons.gamepad))),

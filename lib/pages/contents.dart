@@ -19,10 +19,7 @@ import 'package:fnps/utils/file_size_convert.dart';
 import 'package:fnps/utils/get_localizations.dart';
 
 class Contents extends HookWidget {
-  const Contents({
-    super.key,
-    required this.navigateToPage,
-  });
+  const Contents({super.key, required this.navigateToPage});
 
   final void Function(int index) navigateToPage;
 
@@ -44,13 +41,15 @@ class Contents extends HookWidget {
     final psxBox = Hive.box<Content>(psxBoxName);
     final ps3Box = Hive.box<Content>(ps3BoxName);
 
-    final contents = useMemoized(() => [
-          ...psvBox.values,
-          ...pspBox.values,
-          ...psmBox.values,
-          ...psxBox.values,
-          ...ps3Box.values
-        ]);
+    final contents = useMemoized(
+      () => [
+        ...psvBox.values,
+        ...pspBox.values,
+        ...psmBox.values,
+        ...psxBox.values,
+        ...ps3Box.values,
+      ],
+    );
 
     final focusNode = useFocusNode();
     final searchText = useState('');
@@ -59,38 +58,44 @@ class Contents extends HookWidget {
     final sortedContents = useState(<Content>[]);
 
     final filteredContents = useMemoized(
-        () => contents
-            .where((content) =>
-                (content.name
-                        .toLowerCase()
-                        .contains(searchText.value.toLowerCase()) ||
-                    '${content.contentID}'
-                        .toLowerCase()
-                        .contains(searchText.value.toLowerCase()) ||
-                    '${content.originalName}'
-                        .toLowerCase()
-                        .contains(searchText.value.toLowerCase())) &&
+      () => contents
+          .where(
+            (content) =>
+                (content.name.toLowerCase().contains(
+                      searchText.value.toLowerCase(),
+                    ) ||
+                    '${content.contentID}'.toLowerCase().contains(
+                      searchText.value.toLowerCase(),
+                    ) ||
+                    '${content.originalName}'.toLowerCase().contains(
+                      searchText.value.toLowerCase(),
+                    )) &&
                 regions.contains(content.region) &&
                 platforms.contains(content.platform) &&
                 categories.contains(content.category) &&
-                content.titleID.isNotEmpty)
-            .toList(),
-        [contents, regions, platforms, categories, searchText.value]);
+                content.titleID.isNotEmpty,
+          )
+          .toList(),
+      [contents, regions, platforms, categories, searchText.value],
+    );
 
     useEffect(() {
-      List<Content> contents = [...filteredContents]..sort((a, b) {
+      List<Content> contents = [...filteredContents]
+        ..sort((a, b) {
           switch (sortBy) {
             case SortBy.titleID:
               return a.titleID.compareTo(b.titleID);
             case SortBy.name:
               return a.name.compareTo(b.name);
             case SortBy.lastModificationDate:
-              return (a.lastModificationDate ?? '')
-                  .compareTo(b.lastModificationDate ?? '');
+              return (a.lastModificationDate ?? '').compareTo(
+                b.lastModificationDate ?? '',
+              );
           }
         });
-      sortedContents.value =
-          sortOrder == SortOrder.asc ? contents : contents.reversed.toList();
+      sortedContents.value = sortOrder == SortOrder.asc
+          ? contents
+          : contents.reversed.toList();
       return;
     }, [filteredContents, sortBy, sortOrder]);
 
@@ -103,15 +108,16 @@ class Contents extends HookWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
-    final storagePermissionStatus =
-        useState<PermissionStatus>(PermissionStatus.granted);
+    final storagePermissionStatus = useState<PermissionStatus>(
+      PermissionStatus.granted,
+    );
 
     useEffect(() {
       () async {
         storagePermissionStatus.value = isAndroid
             ? await isAndroid11OrHigher()
-                ? await Permission.manageExternalStorage.status
-                : await Permission.storage.status
+                  ? await Permission.manageExternalStorage.status
+                  : await Permission.storage.status
             : PermissionStatus.granted;
       }();
       return null;
@@ -152,11 +158,11 @@ class Contents extends HookWidget {
                             context: context,
                             child: const ContentsFilter(),
                           ),
-                        )
+                        ),
                       ],
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30.0),
+                      borderRadius: BorderRadius.circular(24),
                       borderSide: const BorderSide(color: Colors.grey),
                     ),
                   ),
@@ -167,7 +173,8 @@ class Contents extends HookWidget {
         ),
         forceMaterialTransparency: true,
       ),
-      body: contents.isEmpty ||
+      body:
+          contents.isEmpty ||
               storagePermissionStatus.value != PermissionStatus.granted
           ? Center(
               child: Column(
@@ -187,54 +194,89 @@ class Contents extends HookWidget {
                     ElevatedButton(
                       onPressed: () => navigateToPage(3),
                       child: Text(t.sync_or_add_content_list),
-                    )
+                    ),
                 ],
               ),
             )
-          : ListView.builder(
+          : GridView.builder(
               key: PageStorageKey(searchText.value),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 640,
+                mainAxisExtent: 64,
+                crossAxisSpacing: 0,
+                mainAxisSpacing: 0,
+              ),
+              addAutomaticKeepAlives: true,
+              addRepaintBoundaries: true,
+              cacheExtent: 500,
               itemCount: sortedContents.value.length,
               itemBuilder: (context, index) {
                 final content = sortedContents.value[index];
-                return ListTile(
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: CachedNetworkImage(
-                        imageUrl: getContentIcon(content, size: 96) ?? '',
-                        fit: BoxFit.contain,
-                        placeholder: (context, url) => const SizedBox(
-                          child: Center(child: Icon(Icons.gamepad)),
-                        ),
-                        errorWidget: (context, url, error) =>
-                            const Icon(Icons.gamepad),
-                        errorListener: (_) {},
-                      ),
-                    ),
-                  ),
-                  title: Text(content.name),
-                  subtitle: Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: [
-                      CustomBadge(text: content.platform.name, primary: true),
-                      CustomBadge(text: content.category.name, tertiary: true),
-                      if (content.region != null)
-                        CustomBadge(text: content.region!.name),
-                      CustomBadge(text: content.titleID),
-                      if (content.fileSize != null && content.fileSize != 0)
-                        CustomBadge(text: fileSizeConv(content.fileSize)!),
-                    ],
-                  ),
+                return _ContentListItem(
+                  key: ValueKey(content.titleID),
+                  content: content,
                   onTap: () {
                     focusNode.unfocus();
-                    Navigator.pushNamed(context, '/content',
-                        arguments: ContentPageProps(content: content));
+                    Navigator.pushNamed(
+                      context,
+                      '/content',
+                      arguments: ContentPageProps(content: content),
+                    );
                   },
                 );
               },
             ),
+    );
+  }
+}
+
+class _ContentListItem extends StatelessWidget {
+  const _ContentListItem({
+    super.key,
+    required this.content,
+    required this.onTap,
+  });
+
+  final Content content;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: ListTile(
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: CachedNetworkImage(
+              imageUrl: getContentIcon(content, size: 96) ?? '',
+              fit: BoxFit.contain,
+              placeholder: (context, url) =>
+                  const SizedBox(child: Center(child: Icon(Icons.gamepad))),
+              errorWidget: (context, url, error) => const Icon(Icons.gamepad),
+              errorListener: (_) {},
+            ),
+          ),
+        ),
+        title: Text(content.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            spacing: 4,
+            children: [
+              CustomBadge(text: content.platform.name, primary: true),
+              CustomBadge(text: content.category.name, tertiary: true),
+              if (content.region != null)
+                CustomBadge(text: content.region!.name),
+              CustomBadge(text: content.titleID),
+              if (content.fileSize != null && content.fileSize != 0)
+                CustomBadge(text: fileSizeConv(content.fileSize)!),
+            ],
+          ),
+        ),
+        onTap: onTap,
+      ),
     );
   }
 }

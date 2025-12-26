@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_html/flutter_html.dart' as html;
@@ -37,16 +38,44 @@ class ContentPageInfo extends HookWidget {
     final contentInfo = useContentInfo(content);
     final changeInfo = useChangeInfo(content, hmacKey);
 
+    final scrollController = useScrollController();
+
     final update = useMemoized(
-        () => contents
-            .firstWhereOrNull((content) => content.category == Category.update),
-        [contents]);
+      () => contents.firstWhereOrNull(
+        (content) => content.category == Category.update,
+      ),
+      [contents],
+    );
 
     final size = useMemoized(
-        () => contents
-            .map((item) => item.fileSize ?? 0)
-            .reduce((value, element) => value + element),
-        [contents]);
+      () => contents
+          .map((item) => item.fileSize ?? 0)
+          .reduce((value, element) => value + element),
+      [contents],
+    );
+
+    final List<String> images = useMemoized(
+      () => contentInfo.media.where((media) => media.contains('.png')).toList(),
+      [contentInfo.media],
+    );
+
+    final onPointerSignal = useCallback((PointerSignalEvent event) {
+      if (event is PointerScrollEvent) {
+        final double delta = event.scrollDelta.dy;
+        final double newOffset = scrollController.offset + delta;
+
+        if (scrollController.hasClients) {
+          scrollController.jumpTo(
+            newOffset.clamp(0, scrollController.position.maxScrollExtent),
+          );
+
+          GestureBinding.instance.pointerSignalResolver.register(
+            event,
+            (event) {},
+          );
+        }
+      }
+    }, [scrollController]);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 96),
@@ -67,11 +96,13 @@ class ContentPageInfo extends HookWidget {
                       width: 128,
                       height: 128,
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(8),
                         child: contentInfo.icon == null
                             ? const Center(child: Icon(Icons.gamepad))
                             : InkWell(
-                                onTap: () => launchURL(contentInfo.icon!),
+                                onTap: () => _showImagePreview(context, [
+                                  contentInfo.icon!,
+                                ], 0),
                                 child: CachedNetworkImage(
                                   imageUrl: contentInfo.icon!,
                                   fit: BoxFit.contain,
@@ -110,7 +141,9 @@ class ContentPageInfo extends HookWidget {
                               primary: true,
                             ),
                             CustomBadge(
-                                text: content.category.name, tertiary: true),
+                              text: content.category.name,
+                              tertiary: true,
+                            ),
                             if (content.region != null)
                               CustomBadge(text: content.region!.name),
                             CustomBadge(text: content.titleID),
@@ -120,8 +153,8 @@ class ContentPageInfo extends HookWidget {
                                 text: update?.version != null
                                     ? '${update?.version}'
                                     : (content.version!.contains('.')
-                                        ? '${content.version}'
-                                        : '${content.version}.00'),
+                                          ? '${content.version}'
+                                          : '${content.version}.00'),
                               ),
                             if (size != 0)
                               CustomBadge(text: fileSizeConv(size)!),
@@ -135,18 +168,18 @@ class ContentPageInfo extends HookWidget {
                                 TextSpan(
                                   text: '${t.content_id}: ',
                                   style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 TextSpan(
                                   text: '${content.contentID}',
                                   style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.normal,
                                   ),
                                 ),
@@ -160,18 +193,18 @@ class ContentPageInfo extends HookWidget {
                                 TextSpan(
                                   text: '${t.last_modification_date}: ',
                                   style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 TextSpan(
                                   text: '${content.lastModificationDate}',
                                   style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.normal,
                                   ),
                                 ),
@@ -192,13 +225,15 @@ class ContentPageInfo extends HookWidget {
                       onPressed: content.pkgDirectLink == null
                           ? null
                           : () => copyToClipboard(
-                                context,
-                                '${content.pkgDirectLink}',
-                                t.download_link_copied,
-                              ),
-                      child: Text(content.pkgDirectLink == null
-                          ? t.download_link_not_available
-                          : t.copy_download_link),
+                              context,
+                              '${content.pkgDirectLink}',
+                              t.download_link_copied,
+                            ),
+                      child: Text(
+                        content.pkgDirectLink == null
+                            ? t.download_link_not_available
+                            : t.copy_download_link,
+                      ),
                     ),
                     if (content.zRIF != null)
                       ElevatedButton(
@@ -221,47 +256,53 @@ class ContentPageInfo extends HookWidget {
                   ],
                 ),
                 // 媒体
-                contentInfo.media.isEmpty
-                    ? const SizedBox()
-                    : const SizedBox(height: 16),
-                contentInfo.media.isEmpty
-                    ? const SizedBox()
-                    : SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: contentInfo.media
-                              .where((media) => media.contains('.png'))
-                              .map(
-                                (media) => Container(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: InkWell(
-                                      onTap: () => launchURL(media),
-                                      child: CachedNetworkImage(
-                                        imageUrl: media,
-                                        fit: BoxFit.contain,
-                                        width: 480 / 3 * 2,
-                                        height: 272 / 3 * 2,
-                                        placeholder: (context, url) =>
-                                            const SizedBox(
+                images.isEmpty ? const SizedBox() : const SizedBox(height: 16),
+                if (images.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Listener(
+                    onPointerSignal: onPointerSignal,
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      scrollDirection: Axis.horizontal,
+                      physics: const ClampingScrollPhysics(),
+                      child: Row(
+                        children: images.asMap().entries.map((entry) {
+                          int index = entry.key;
+                          String media = entry.value;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () =>
+                                      _showImagePreview(context, images, index),
+                                  child: CachedNetworkImage(
+                                    imageUrl: media,
+                                    fit: BoxFit.contain,
+                                    width: 320,
+                                    height: 181,
+                                    placeholder: (context, url) =>
+                                        const SizedBox(
                                           width: 100,
                                           height: 100,
                                           child: Center(
                                             child: CircularProgressIndicator(),
                                           ),
                                         ),
-                                        errorWidget: (context, url, error) =>
-                                            const Icon(Icons.error),
-                                        errorListener: (_) {},
-                                      ),
-                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        const Icon(Icons.error),
                                   ),
                                 ),
-                              )
-                              .toList(),
-                        ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -270,32 +311,176 @@ class ContentPageInfo extends HookWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: html.Html(
-                data: contentInfo.desc,
-              ),
+              child: html.Html(data: contentInfo.desc),
             ),
-          ...changeInfo.map((change) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 24),
-                    child: Text(
-                      change.version,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
+          ...changeInfo.map(
+            (change) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 24),
+                  child: Text(
+                    change.version,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: html.Html(
-                      data: change.desc,
-                    ),
-                  ),
-                ],
-              ))
+                ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: html.Html(data: change.desc),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
+}
+
+void _showImagePreview(
+  BuildContext context,
+  List<String> images,
+  int initialIndex,
+) {
+  final PageController pageController = PageController(
+    initialPage: initialIndex,
+  );
+  int currentIndex = initialIndex;
+
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Scaffold(
+            backgroundColor: Colors.black.withAlpha(128),
+            extendBodyBehindAppBar: true,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: Text(
+                '${currentIndex + 1} / ${images.length}',
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.open_in_browser, color: Colors.white),
+                  tooltip: 'Open in Browser',
+                  onPressed: () => launchURL(images[currentIndex]),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
+            body: Stack(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(color: Colors.transparent),
+                ),
+
+                Listener(
+                  onPointerSignal: (event) {
+                    if (event is PointerScrollEvent) {
+                      GestureBinding.instance.pointerSignalResolver.register(
+                        event,
+                        (event) {},
+                      );
+                      if (event.scrollDelta.dy > 0) {
+                        if (currentIndex < images.length - 1) {
+                          pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      } else if (event.scrollDelta.dy < 0) {
+                        if (currentIndex > 0) {
+                          pageController.previousPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      }
+                    }
+                  },
+                  child: PageView.builder(
+                    controller: pageController,
+                    itemCount: images.length,
+                    onPageChanged: (index) =>
+                        setState(() => currentIndex = index),
+                    itemBuilder: (context, index) {
+                      return InteractiveViewer(
+                        scaleEnabled: false,
+                        panEnabled: false,
+                        child: GestureDetector(
+                          onTap: () {},
+                          child: Center(
+                            child: CachedNetworkImage(
+                              imageUrl: images[index],
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                if (currentIndex > 0)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 16),
+                      child: IconButton.filled(
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white10,
+                        ),
+                        onPressed: () => pageController.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        ),
+                        icon: const Icon(
+                          Icons.chevron_left,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                if (currentIndex < images.length - 1)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 16),
+                      child: IconButton.filled(
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white10,
+                        ),
+                        onPressed: () => pageController.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        ),
+                        icon: const Icon(
+                          Icons.chevron_right,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
 }

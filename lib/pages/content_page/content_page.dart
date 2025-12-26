@@ -17,27 +17,18 @@ class ITab {
   final String title;
   final Widget child;
 
-  const ITab({
-    required this.title,
-    required this.child,
-  });
+  const ITab({required this.title, required this.child});
 }
 
 class ContentPageProps {
   final Content content;
   final int? initialIndex;
 
-  const ContentPageProps({
-    required this.content,
-    this.initialIndex,
-  });
+  const ContentPageProps({required this.content, this.initialIndex});
 }
 
 class ContentPage extends HookWidget {
-  const ContentPage({
-    super.key,
-    required this.props,
-  });
+  const ContentPage({super.key, required this.props});
 
   final ContentPageProps props;
 
@@ -51,8 +42,9 @@ class ContentPage extends HookWidget {
     final config = configProvider.config;
     String? hmacKey = config.hmacKey;
 
-    final downloadBox =
-        useMemoized(() => Hive.box<DownloadItem>(downloadBoxName));
+    final downloadBox = useMemoized(
+      () => Hive.box<DownloadItem>(downloadBoxName),
+    );
 
     final downloader = Downloader.instance;
 
@@ -61,33 +53,43 @@ class ContentPage extends HookWidget {
     List<Content> contents = useContents(content, hmacKey);
 
     final canDownloadContents = useMemoized(
-        () => contents.where((item) => item.pkgDirectLink != null).toList(),
-        [contents]);
+      () => contents.where((item) => item.pkgDirectLink != null).toList(),
+      [contents],
+    );
 
     final currentDownloads = useMemoized(
-        () => downloads.values
-            .where((item) => contents.contains(item.content))
-            .toList(),
-        [downloads.values, contents]);
+      () => downloads.values
+          .where((item) => contents.contains(item.content))
+          .toList(),
+      [downloads.values, contents],
+    );
 
     final currentCompletedDownloads = useMemoized(
-        () => currentDownloads.where((item) =>
+      () => currentDownloads.where(
+        (item) =>
             item.extractStatus == ExtractStatus.completed ||
-            item.extractStatus == ExtractStatus.notNeeded),
-        [currentDownloads]);
+            item.extractStatus == ExtractStatus.notNeeded,
+      ),
+      [currentDownloads],
+    );
 
     bool isDownloading = useMemoized(
-        () => currentDownloads
-            .any((item) => item.downloadStatus == DownloadStatus.downloading),
-        [currentDownloads]);
+      () => currentDownloads.any(
+        (item) => item.downloadStatus == DownloadStatus.downloading,
+      ),
+      [currentDownloads],
+    );
 
     final incompletedDownloads = useMemoized(
-        () => currentDownloads
-            .whereNot((item) =>
+      () => currentDownloads
+          .whereNot(
+            (item) =>
                 item.extractStatus == ExtractStatus.completed ||
-                item.extractStatus == ExtractStatus.notNeeded)
-            .toList(),
-        [currentDownloads]);
+                item.extractStatus == ExtractStatus.notNeeded,
+          )
+          .toList(),
+      [currentDownloads],
+    );
 
     final tabController = useTabController(
       initialLength: 2,
@@ -99,54 +101,76 @@ class ContentPage extends HookWidget {
       tabController.animateTo(1);
     }
 
-    List<ITab> tabs = [
-      ITab(
-        title: t.info,
-        child: ContentPageInfo(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWideScreen = constraints.maxWidth >= 900;
+
+        final infoWidget = ContentPageInfo(
           content: content,
           contents: contents,
           downloadContents: downloadContents,
-        ),
-      ),
-      ITab(
-        title: t.download_contents,
-        child: ContentList(contents: contents),
-      ),
-    ];
+        );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: TabBar(
-            controller: tabController,
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            dividerColor: Colors.transparent,
-            tabs: tabs.map((e) => Tab(text: e.title)).toList()),
-      ),
-      body: TabBarView(
-        controller: tabController,
-        children: tabs.map((e) => e.child).toList(),
-      ),
-      floatingActionButton: canDownloadContents.isEmpty
-          ? null
-          : FloatingActionButton.extended(
-              icon: Icon(isDownloading ? Icons.pause : Icons.download),
-              label: Text(currentDownloads.isEmpty
-                  ? canDownloadContents.length == 1 &&
-                          content.pkgDirectLink != null
-                      ? t.download
-                      : t.download_all_downloadable_content
-                  : currentDownloads.length == canDownloadContents.length
-                      ? '${isDownloading ? t.downloading : t.downloaded} ${currentCompletedDownloads.length} / ${currentDownloads.length}'
-                      : '${isDownloading ? t.downloading : t.downloaded} ${currentCompletedDownloads.length} / ${currentDownloads.length} / ${canDownloadContents.length}'),
-              onPressed: () => isDownloading
-                  ? downloader.pause(contents)
-                  : incompletedDownloads.isNotEmpty
+        final tabs = [
+          ITab(title: t.info, child: infoWidget),
+          ITab(
+            title: t.download_contents,
+            child: ContentList(contents: contents),
+          ),
+        ];
+
+        return Scaffold(
+          appBar: AppBar(
+            title: isWideScreen
+                ? Text(content.name)
+                : TabBar(
+                    controller: tabController,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    dividerColor: Colors.transparent,
+                    tabs: tabs.map((e) => Tab(text: e.title)).toList(),
+                  ),
+            scrolledUnderElevation: 0.0,
+            backgroundColor: Colors.transparent,
+          ),
+          body: isWideScreen
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 1, child: infoWidget),
+                    const VerticalDivider(width: 1),
+                    Expanded(flex: 1, child: ContentList(contents: contents)),
+                  ],
+                )
+              : TabBarView(
+                  controller: tabController,
+                  children: tabs.map((e) => e.child).toList(),
+                ),
+          floatingActionButton: canDownloadContents.isEmpty
+              ? null
+              : FloatingActionButton.extended(
+                  icon: Icon(isDownloading ? Icons.pause : Icons.download),
+                  label: Text(
+                    currentDownloads.isEmpty
+                        ? canDownloadContents.length == 1 &&
+                                  content.pkgDirectLink != null
+                              ? t.download
+                              : t.download_all_downloadable_content
+                        : currentDownloads.length == canDownloadContents.length
+                        ? '${isDownloading ? t.downloading : t.downloaded} ${currentCompletedDownloads.length} / ${currentDownloads.length}'
+                        : '${isDownloading ? t.downloading : t.downloaded} ${currentCompletedDownloads.length} / ${currentDownloads.length} / ${canDownloadContents.length}',
+                  ),
+                  onPressed: () => isDownloading
+                      ? downloader.pause(contents)
+                      : incompletedDownloads.isNotEmpty
                       ? downloader.add(
-                          incompletedDownloads.map((e) => e.content).toList())
+                          incompletedDownloads.map((e) => e.content).toList(),
+                        )
                       : downloadContents(),
-            ),
-      floatingActionButtonAnimator: FloatingActionButtonAnimator.scaling,
+                ),
+          floatingActionButtonAnimator: FloatingActionButtonAnimator.scaling,
+        );
+      },
     );
   }
 }

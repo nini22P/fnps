@@ -33,7 +33,7 @@ class CustomBadge extends HookWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         text.toUpperCase(),
