@@ -95,12 +95,12 @@ class Downloads extends HookWidget {
               )
               .toList();
 
-          final allDownloadSize = currentDownloads
-              .map((item) => item.size)
+          final allDownloadLength = currentDownloads
+              .map((item) => item.totalLength)
               .reduce((value, element) => value + element);
 
-          final currentDownloadSize = currentDownloads
-              .map((item) => item.size * item.progress)
+          final completedDownloadLength = currentDownloads
+              .map((item) => item.completedLength)
               .reduce((value, element) => value + element)
               .toInt();
 
@@ -129,8 +129,8 @@ class Downloads extends HookWidget {
                 CustomBadge(text: content.titleID),
                 CustomBadge(
                   text: incompletedDownloads.isEmpty
-                      ? '${fileSizeConv(currentDownloadSize)}'
-                      : '${fileSizeConv(currentDownloadSize)} / ${fileSizeConv(allDownloadSize)}',
+                      ? '${fileSizeConv(completedDownloadLength)}'
+                      : '${fileSizeConv(completedDownloadLength)} / ${fileSizeConv(allDownloadLength)}',
                 ),
                 CustomBadge(
                   text:

@@ -14,15 +14,36 @@ class CustomBadge extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Badge(
-      label: Text(text.toUpperCase()),
-      textColor: Theme.of(context).colorScheme.surface,
-      backgroundColor: primary
-          ? Theme.of(context).colorScheme.primary
-          : tertiary
-              ? Theme.of(context).colorScheme.tertiary
-              : Theme.of(context).colorScheme.secondary,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final (Color bgColor, Color textColor) = useMemoized(() {
+      if (primary) {
+        return (colorScheme.primaryContainer, colorScheme.onPrimaryContainer);
+      } else if (tertiary) {
+        return (colorScheme.tertiaryContainer, colorScheme.onTertiaryContainer);
+      } else {
+        return (
+          colorScheme.surfaceContainerHighest,
+          colorScheme.onSurfaceVariant,
+        );
+      }
+    }, [primary, tertiary, colorScheme]);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text.toUpperCase(),
+        style: TextStyle(
+          color: textColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+        ),
+      ),
     );
   }
 }

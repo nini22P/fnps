@@ -17,11 +17,7 @@ import 'package:fnps/utils/file_size_convert.dart';
 import 'package:fnps/utils/get_localizations.dart';
 
 class ContentList extends HookWidget {
-  const ContentList({
-    super.key,
-    required this.contents,
-    this.scroll = true,
-  });
+  const ContentList({super.key, required this.contents, this.scroll = true});
 
   final List<Content> contents;
   final bool scroll;
@@ -30,8 +26,9 @@ class ContentList extends HookWidget {
   Widget build(BuildContext context) {
     final t = getLocalizations(context);
 
-    final downloadBox =
-        useMemoized(() => Hive.box<DownloadItem>(downloadBoxName));
+    final downloadBox = useMemoized(
+      () => Hive.box<DownloadItem>(downloadBoxName),
+    );
     final downloads = useListenable(downloadBox.listenable()).value;
 
     final downloader = useMemoized(() => Downloader.instance);
@@ -52,17 +49,18 @@ class ContentList extends HookWidget {
               child: CachedNetworkImage(
                 imageUrl: getContentIcon(content, size: 96)!,
                 fit: BoxFit.contain,
-                placeholder: (context, url) => const SizedBox(
-                  child: Center(child: Icon(Icons.gamepad)),
-                ),
+                placeholder: (context, url) =>
+                    const SizedBox(child: Center(child: Icon(Icons.gamepad))),
                 errorWidget: (context, url, error) => const Icon(Icons.gamepad),
                 errorListener: (_) {},
               ),
             ),
           ),
-          title: Text(content.category == Category.update
-              ? '${content.name}${content.version != null ? ' ${content.version}' : ''}'
-              : content.name),
+          title: Text(
+            content.category == Category.update
+                ? '${content.name}${content.version != null ? ' ${content.version}' : ''}'
+                : content.name,
+          ),
           subtitle: Wrap(
             spacing: 4,
             runSpacing: 4,
@@ -72,44 +70,55 @@ class ContentList extends HookWidget {
                 CustomBadge(text: fileSizeConv(content.fileSize)!),
               if (downloadItem != null &&
                   downloadItem.downloadStatus != DownloadStatus.completed)
-                CustomBadge(text: () {
-                  final progress =
-                      (downloadItem.progress * 100).toStringAsFixed(2);
-                  switch (downloadItem.downloadStatus) {
-                    case DownloadStatus.queued:
-                      return '${t.download_queued} $progress%';
-                    case DownloadStatus.downloading:
-                      return '${t.downloading} $progress%';
-                    case DownloadStatus.completed:
-                      return '${t.download_completed} $progress%';
-                    case DownloadStatus.failed:
-                      return '${t.download_failed} $progress%';
-                    case DownloadStatus.paused:
-                      return '${t.download_paused} $progress%';
-                    case DownloadStatus.canceled:
-                      return '${t.download_canceled} $progress%';
-                  }
-                }()),
+                CustomBadge(
+                  text: () {
+                    final progress = (downloadItem.totalLength > 0)
+                        ? (downloadItem.completedLength /
+                                  downloadItem.totalLength *
+                                  100)
+                              .toStringAsFixed(2)
+                        : '0.00';
+                    switch (downloadItem.downloadStatus) {
+                      case DownloadStatus.queued:
+                        return '${t.download_queued} $progress%';
+                      case DownloadStatus.downloading:
+                        return '${t.downloading} $progress%';
+                      case DownloadStatus.completed:
+                        return '${t.download_completed} $progress%';
+                      case DownloadStatus.failed:
+                        return '${t.download_failed} $progress%';
+                      case DownloadStatus.paused:
+                        return '${t.download_paused} $progress%';
+                      case DownloadStatus.canceled:
+                        return '${t.download_canceled} $progress%';
+                    }
+                  }(),
+                ),
               if (downloadItem != null &&
                   downloadItem.downloadStatus == DownloadStatus.completed)
-                CustomBadge(text: () {
-                  switch (downloadItem.extractStatus) {
-                    case ExtractStatus.queued:
-                      return t.extract_queued;
-                    case ExtractStatus.extracting:
-                      return t.extracting;
-                    case ExtractStatus.completed:
-                      return t.extract_completed;
-                    case ExtractStatus.failed:
-                      return t.extract_failed;
-                    case ExtractStatus.notNeeded:
-                      return t.download_completed;
-                  }
-                }())
+                CustomBadge(
+                  text: () {
+                    switch (downloadItem.extractStatus) {
+                      case ExtractStatus.queued:
+                        return t.extract_queued;
+                      case ExtractStatus.extracting:
+                        return t.extracting;
+                      case ExtractStatus.completed:
+                        return t.extract_completed;
+                      case ExtractStatus.failed:
+                        return t.extract_failed;
+                      case ExtractStatus.notNeeded:
+                        return t.download_completed;
+                    }
+                  }(),
+                ),
             ],
           ),
-          onTap: () => Navigator.pushNamed(context, '/content',
-              arguments: ContentPageProps(content: content)),
+          onTap: () => Navigator.pushNamed(
+            context,
+            '/content',
+            arguments: ContentPageProps(content: content),
+          ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -158,12 +167,14 @@ class ContentList extends HookWidget {
                       PopupMenuItem(
                         child: Text(t.open_in_folder),
                         onTap: () async {
-                          final result =
-                              await openExplorer(dir: downloadItem.directory);
+                          final result = await openExplorer(
+                            dir: downloadItem.directory,
+                          );
                           if (!result && context.mounted) {
                             logger('Could not open directory');
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text(t.cannot_open_in_folder)));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(t.cannot_open_in_folder)),
+                            );
                           }
                         },
                       ),

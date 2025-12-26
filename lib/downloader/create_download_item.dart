@@ -17,7 +17,7 @@ Future<DownloadItem?> createDownloadItem(Content content) async {
     id: id,
     filename: filename,
     directory: directory,
-    size: content.fileSize ?? 0,
+    totalLength: content.fileSize ?? 0,
     content: content,
   );
 

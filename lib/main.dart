@@ -6,7 +6,9 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:fnps/downloader/aria2.dart';
 import 'package:fnps/l10n/app_localizations.dart';
 import 'package:fnps/theme.dart';
+import 'package:fnps/utils/logger.dart';
 import 'package:fnps/utils/my_http_overrides.dart';
+import 'package:fnps/hive/open_box.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -37,12 +39,12 @@ Future<void> main() async {
   Hive.registerAdapter(ExtractStatusAdapter());
   Hive.registerAdapter(DownloadItemAdapter());
 
-  await Hive.openBox<DownloadItem>(downloadBoxName);
-  await Hive.openBox<Content>(psvBoxName);
-  await Hive.openBox<Content>(pspBoxName);
-  await Hive.openBox<Content>(psmBoxName);
-  await Hive.openBox<Content>(psxBoxName);
-  await Hive.openBox<Content>(ps3BoxName);
+  await openBox<DownloadItem>(downloadBoxName);
+  await openBox<Content>(psvBoxName);
+  await openBox<Content>(pspBoxName);
+  await openBox<Content>(psmBoxName);
+  await openBox<Content>(psxBoxName);
+  await openBox<Content>(ps3BoxName);
 
   await Aria2.instance.init();
   await Downloader.instance.init();
@@ -72,6 +74,33 @@ class FNPS extends HookWidget {
       }
       return null;
     }, []);
+
+    final appLifecycleState = useAppLifecycleState();
+
+    useEffect(() {
+      logger("App Lifecycle changed to: $appLifecycleState");
+
+      switch (appLifecycleState) {
+        case AppLifecycleState.resumed:
+          Downloader.instance.setPollInterval(
+            const Duration(milliseconds: 1500),
+          );
+          break;
+
+        case AppLifecycleState.inactive:
+        case AppLifecycleState.hidden:
+        case AppLifecycleState.paused:
+          Downloader.instance.setPollInterval(const Duration(seconds: 5));
+          break;
+
+        case AppLifecycleState.detached:
+          break;
+
+        default:
+          break;
+      }
+      return null;
+    }, [appLifecycleState]);
 
     return DynamicColorBuilder(
       builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {

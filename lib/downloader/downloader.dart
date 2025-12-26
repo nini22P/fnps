@@ -42,6 +42,8 @@ class Downloader {
       try {
         final globalStat = await Aria2.instance.getGlobalStat();
 
+        logger('Aria2 global stat: $globalStat');
+
         if (globalStat.numActive == 0 && globalStat.numStopped == 0) {
           logger('No active tasks, stopping polling...');
           _stopPolling();
@@ -77,6 +79,18 @@ class Downloader {
       _pollingTimer = null;
       _isPolling = false;
       logger('Polling stopped');
+    }
+  }
+
+  void setPollInterval(Duration duration) {
+    if (pollInterval == duration) return;
+
+    logger('Updating poll interval to: ${duration.inMilliseconds}ms');
+    pollInterval = duration;
+
+    if (_isPolling) {
+      _stopPolling();
+      _startPolling();
     }
   }
 
@@ -151,7 +165,6 @@ class Downloader {
               existingItem.copyWith(
                 downloadStatus: DownloadStatus.queued,
                 extractStatus: ExtractStatus.queued,
-                progress: 0.0,
               ),
             );
             _queue.add(content);
@@ -340,13 +353,12 @@ class Downloader {
 
     if (downloadItem.downloadStatus != DownloadStatus.downloading) return;
 
-    final progress = status.totalLength > 0
-        ? status.completedLength / status.totalLength
-        : 0.0;
-
     downloadBox.put(
       downloadItem.id,
-      downloadItem.copyWith(progress: progress, size: status.totalLength),
+      downloadItem.copyWith(
+        totalLength: status.totalLength,
+        completedLength: status.completedLength,
+      ),
     );
   }
 
@@ -376,14 +388,14 @@ class Downloader {
       downloadBox.put(
         downloadItem.id,
         downloadItem.copyWith(
-          progress: 1.0,
+          completedLength: downloadItem.totalLength,
           downloadStatus: DownloadStatus.completed,
         ),
       );
 
       final result = await _extractDownload(
         downloadItem.copyWith(
-          progress: 1.0,
+          completedLength: downloadItem.totalLength,
           downloadStatus: DownloadStatus.completed,
         ),
       );
@@ -405,16 +417,6 @@ class Downloader {
       ...downloadItem.directory,
       downloadItem.filename,
     ];
-
-    downloadBox.put(
-      downloadItem.id,
-      downloadItem.copyWith(
-        downloadStatus: DownloadStatus.completed,
-        progress: 1.0,
-      ),
-    );
-
-    await Future.delayed(const Duration(milliseconds: 300));
 
     downloadBox.put(
       downloadItem.id,
