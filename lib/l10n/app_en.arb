@@ -10,6 +10,8 @@
   "copy_download_link": "Copy download Link",
   "copy_update_link": "Copy update link",
   "delete": "Delete",
+  "delete_all": "Delete all",
+  "delete_completed": "Delete completed",
   "demo_list": "DEMO list",
   "dlc": "DLC",
   "dlc_link_copied": "DLC link copied",

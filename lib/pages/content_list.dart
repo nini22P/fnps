@@ -167,7 +167,6 @@ class ContentList extends HookWidget {
                         case ExtractStatus.completed:
                         case ExtractStatus.notNeeded:
                           return IconButton(
-                            tooltip: t.delete,
                             icon: const Icon(Icons.delete),
                             onPressed: () => downloader.remove([content]),
                           );

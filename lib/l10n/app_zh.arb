@@ -10,6 +10,8 @@
   "copy_download_link": "复制下载链接",
   "copy_update_link": "复制更新链接",
   "delete": "删除",
+  "delete_all": "删除全部",
+  "delete_completed": "删除已完成",
   "demo_list": "DEMO 列表",
   "dlc": "DLC",
   "dlc_link_copied": "已复制 DLC 下载链接",

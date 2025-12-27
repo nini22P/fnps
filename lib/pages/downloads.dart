@@ -14,6 +14,8 @@ import 'package:fnps/pages/content_page/content_page.dart';
 import 'package:fnps/utils/file_size_convert.dart';
 import 'package:fnps/utils/get_localizations.dart';
 
+enum DownloadMenuAction { deleteCompleted, deleteAll }
+
 class Downloads extends HookWidget {
   const Downloads({super.key});
 
@@ -57,7 +59,67 @@ class Downloads extends HookWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(t.download), forceMaterialTransparency: true),
+      appBar: AppBar(
+        title: Text(t.download),
+        forceMaterialTransparency: true,
+        actions: [
+          PopupMenuButton<DownloadMenuAction>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (action) {
+              switch (action) {
+                case DownloadMenuAction.deleteCompleted:
+                  final completedContents = downloadBox.values
+                      .where(
+                        (item) => [
+                          ExtractStatus.completed,
+                          ExtractStatus.notNeeded,
+                        ].contains(item.extractStatus),
+                      )
+                      .map((e) => e.content)
+                      .toList();
+                  if (completedContents.isNotEmpty) {
+                    downloader.remove(completedContents);
+                  }
+                  break;
+                case DownloadMenuAction.deleteAll:
+                  final allContents = downloadBox.values
+                      .map((e) => e.content)
+                      .toList();
+                  if (allContents.isNotEmpty) {
+                    downloader.remove(allContents);
+                  }
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: DownloadMenuAction.deleteCompleted,
+                child: Row(
+                  children: [
+                    const Icon(Icons.done_all, size: 20),
+                    const SizedBox(width: 8),
+                    Text(t.delete_completed),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: DownloadMenuAction.deleteAll,
+                child: Row(
+                  children: [
+                    const Icon(Icons.delete_sweep, size: 20, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Text(
+                      t.delete_all,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: ListView.builder(
         itemCount: apps.length,
         itemBuilder: (context, index) {
