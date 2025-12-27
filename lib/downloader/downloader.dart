@@ -3,6 +3,8 @@ import 'dart:collection';
 import 'dart:io';
 import 'package:fnps/downloader/aria2.dart';
 import 'package:fnps/models/aria2.dart';
+import 'package:fnps/models/config.dart';
+import 'package:fnps/provider/config_provider.dart';
 import 'package:fnps/utils/rap.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:fnps/downloader/create_download_item.dart';
@@ -448,13 +450,11 @@ class Downloader {
       logger('getPkgName failed:', error: e);
     }
 
+    final config = await ConfigProvider().loadConfig();
+
     final result = await pkg2zip(
       path: path,
-      extract:
-          downloadItem.content.platform == Platform.psv &&
-              downloadItem.content.category == Category.theme
-          ? false
-          : true,
+      extract: config.pkg2zipOutputMode == Pkg2zipOutputMode.folder,
       zRIF: downloadItem.content.zRIF,
     );
 

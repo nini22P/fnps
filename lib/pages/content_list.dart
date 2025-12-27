@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fnps/models/config.dart';
+import 'package:fnps/provider/config_provider.dart';
 import 'package:fnps/utils/content_info.dart';
 import 'package:fnps/utils/logger.dart';
 import 'package:fnps/utils/open_explorer.dart';
@@ -15,6 +17,7 @@ import 'package:fnps/pages/content_page/content_page.dart';
 import 'package:fnps/utils/copy_to_clipboard.dart';
 import 'package:fnps/utils/file_size_convert.dart';
 import 'package:fnps/utils/get_localizations.dart';
+import 'package:provider/provider.dart';
 
 class ContentList extends HookWidget {
   const ContentList({super.key, required this.contents, this.scroll = true});
@@ -32,6 +35,10 @@ class ContentList extends HookWidget {
     final downloads = useListenable(downloadBox.listenable()).value;
 
     final downloader = useMemoized(() => Downloader.instance);
+
+    final pkg2zipOutputMode = context.select<ConfigProvider, Pkg2zipOutputMode>(
+      (provider) => provider.config.pkg2zipOutputMode,
+    );
 
     return ListView.builder(
       shrinkWrap: true,
@@ -105,13 +112,21 @@ class ContentList extends HookWidget {
                   text: () {
                     switch (downloadItem.extractStatus) {
                       case ExtractStatus.queued:
-                        return t.extract_queued;
+                        return pkg2zipOutputMode == Pkg2zipOutputMode.folder
+                            ? t.extract_queued
+                            : t.convert_queued;
                       case ExtractStatus.extracting:
-                        return t.extracting;
+                        return pkg2zipOutputMode == Pkg2zipOutputMode.folder
+                            ? t.extracting
+                            : t.converting;
                       case ExtractStatus.completed:
-                        return t.extract_completed;
+                        return pkg2zipOutputMode == Pkg2zipOutputMode.folder
+                            ? t.extract_completed
+                            : t.convert_completed;
                       case ExtractStatus.failed:
-                        return t.extract_failed;
+                        return pkg2zipOutputMode == Pkg2zipOutputMode.folder
+                            ? t.extract_failed
+                            : t.convert_failed;
                       case ExtractStatus.notNeeded:
                         return t.download_completed;
                     }
@@ -152,7 +167,7 @@ class ContentList extends HookWidget {
                         case ExtractStatus.completed:
                         case ExtractStatus.notNeeded:
                           return IconButton(
-                            tooltip: t.delete_downloaded_pkg,
+                            tooltip: t.delete,
                             icon: const Icon(Icons.delete),
                             onPressed: () => downloader.remove([content]),
                           );
@@ -228,12 +243,16 @@ class ContentList extends HookWidget {
                             DownloadStatus.completed &&
                         downloadItem?.extractStatus == ExtractStatus.failed)
                       PopupMenuItem(
-                        child: Text(t.re_extract),
+                        child: Text(
+                          pkg2zipOutputMode == Pkg2zipOutputMode.folder
+                              ? t.re_extract
+                              : t.re_convert,
+                        ),
                         onTap: () => downloader.add([content]),
                       ),
                     if (downloadItem != null)
                       PopupMenuItem(
-                        child: Text(t.delete_downloaded_pkg),
+                        child: Text(t.delete),
                         onTap: () => downloader.remove([content]),
                       ),
                   ],

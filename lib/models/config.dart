@@ -11,6 +11,8 @@ enum SortOrder { asc, desc }
 
 enum SyncStatus { notSyncing, queue, syncing, done }
 
+enum Pkg2zipOutputMode { folder, zip }
+
 @freezed
 abstract class Config with _$Config {
   const factory Config({
@@ -21,6 +23,7 @@ abstract class Config with _$Config {
     String? hmacKey,
     @Default(SortBy.name) SortBy sortBy,
     @Default(SortOrder.asc) SortOrder sortOrder,
+    @Default(Pkg2zipOutputMode.folder) Pkg2zipOutputMode pkg2zipOutputMode,
   }) = _Config;
 
   factory Config.fromJson(Map<String, dynamic> json) => _$ConfigFromJson(json);
@@ -109,6 +112,7 @@ abstract class Config with _$Config {
     hmacKey: Env().hmacKey,
     sortBy: SortBy.lastModificationDate,
     sortOrder: SortOrder.desc,
+    pkg2zipOutputMode: Pkg2zipOutputMode.folder,
   );
 }
 

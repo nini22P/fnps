@@ -10,8 +10,6 @@
   "copy_download_link": "Copy download Link",
   "copy_update_link": "Copy update link",
   "delete": "Delete",
-  "delete_downloaded_pkg": "Delete downloaded PKG",
-  "delete_pkg_after_unpacking": "Delete pkg after unpacking",
   "demo_list": "DEMO list",
   "dlc": "DLC",
   "dlc_link_copied": "DLC link copied",
@@ -34,6 +32,10 @@
   "extract_failed": "Extract failed",
   "extract_queued": "Extract queued",
   "extracting": "Extracting",
+  "convert_completed": "Convert completed",
+  "convert_failed": "Convert failed",
+  "convert_queued": "Convert queued",
+  "converting": "Converting",
   "file": "File",
   "game": "Game",
   "game_list": "Game list",
@@ -53,6 +55,7 @@
   "queuing": "Queuing",
   "rap_download_link_copied": "RAP download link copied",
   "re_extract": "Re-extract",
+  "re_convert": "Re-convert",
   "region": "Region",
   "remote": "Remote",
   "reset_config": "Reset config",
@@ -78,5 +81,8 @@
   "use_custom_url": "Use custom url",
   "version": "Version",
   "zrif_copied": "zRIF copied",
-  "zrif_not_available": "zRIF not available"
+  "zrif_not_available": "zRIF not available",
+  "pkg2zip_output_mode": "pkg2zip output mode",
+  "extract_to_folder": "Extract to folder",
+  "convert_to_zip": "Convert to zip"
 }

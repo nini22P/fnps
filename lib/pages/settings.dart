@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:fnps/models/download_item.dart';
+import 'package:fnps/pages/show_pkg2zip_output_mode_dialog.dart';
 import 'package:fnps/pages/show_source_dialog.dart';
 import 'package:fnps/utils/logger.dart';
 import 'package:fnps/widgets/custom_badge.dart';
@@ -394,6 +395,15 @@ class Settings extends HookWidget {
             const Divider(),
             ...tiles,
             const Divider(),
+            ListTile(
+              title: Text(t.pkg2zip_output_mode),
+              subtitle:
+                  configProvider.config.pkg2zipOutputMode ==
+                      Pkg2zipOutputMode.folder
+                  ? Text(t.extract_to_folder)
+                  : Text(t.convert_to_zip),
+              onTap: () => showPkg2zipOutputModeDialog(context),
+            ),
             ListTile(
               title: Text(t.hmac_key),
               subtitle: configProvider.config.hmacKey == null

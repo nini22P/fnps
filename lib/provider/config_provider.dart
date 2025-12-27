@@ -9,7 +9,7 @@ class ConfigProvider with ChangeNotifier {
 
   Config get config => _config;
 
-  Future<void> loadConfig() async {
+  Future<Config> loadConfig() async {
     final file = File(pathJoin([...await getConfigPath(), 'config.json']));
 
     if (await file.exists()) {
@@ -32,6 +32,8 @@ class ConfigProvider with ChangeNotifier {
       );
       notifyListeners();
     }
+
+    return _config;
   }
 
   Future<void> saveConfig() async {

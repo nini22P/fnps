@@ -10,8 +10,6 @@
   "copy_download_link": "复制下载链接",
   "copy_update_link": "复制更新链接",
   "delete": "删除",
-  "delete_downloaded_pkg": "删除已下载的 PKG",
-  "delete_pkg_after_unpacking": "解包完毕后删除 PKG",
   "demo_list": "DEMO 列表",
   "dlc": "DLC",
   "dlc_link_copied": "已复制 DLC 下载链接",
@@ -34,6 +32,10 @@
   "extract_failed": "解包失败",
   "extract_queued": "解包队列中",
   "extracting": "正在解包",
+  "convert_completed": "转换完毕",
+  "convert_failed": "转换失败",
+  "convert_queued": "转换队列中",
+  "converting": "正在转换",
   "file": "文件",
   "game": "游戏",
   "game_list": "游戏列表",
@@ -53,6 +55,7 @@
   "queuing": "队列中",
   "rap_download_link_copied": "已复制 RAP 下载链接",
   "re_extract": "重新解包",
+  "re_convert": "重新转换",
   "region": "区域",
   "remote": "远程",
   "reset_config": "重置配置",
@@ -78,5 +81,8 @@
   "use_custom_url": "使用自定义地址",
   "version": "版本",
   "zrif_copied": "已复制 zRIF",
-  "zrif_not_available": "未提供 zRIF"
+  "zrif_not_available": "未提供 zRIF",
+  "pkg2zip_output_mode": "pkg2zip 输出模式",
+  "extract_to_folder": "解包为文件夹",
+  "convert_to_zip": "转换为 zip"
 }
