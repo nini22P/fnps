@@ -9,6 +9,7 @@ import 'package:fnps/models/download_item.dart';
 import 'package:fnps/pages/show_pkg2zip_output_mode_dialog.dart';
 import 'package:fnps/pages/show_source_dialog.dart';
 import 'package:fnps/utils/logger.dart';
+import 'package:fnps/utils/source_sorter.dart';
 import 'package:fnps/widgets/custom_badge.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
@@ -112,7 +113,7 @@ class Settings extends HookWidget {
           .toList();
       configProvider.updateConfig(
         configProvider.config.copyWith(
-          sources: [
+          sources: sourceSorter([
             ...filteredSources,
             Source(
               platform: platform,
@@ -122,7 +123,7 @@ class Settings extends HookWidget {
               count: contents.length,
               syncStatus: SyncStatus.done,
             ),
-          ],
+          ]),
         ),
       );
     }
@@ -329,46 +330,26 @@ class Settings extends HookWidget {
       );
     }
 
-    final sourceOrder = [
-      (Platform.psv, Category.game),
-      (Platform.psv, Category.dlc),
-      (Platform.psv, Category.theme),
-      (Platform.psv, Category.update),
-      (Platform.psv, Category.demo),
-      (Platform.psp, Category.game),
-      (Platform.psp, Category.dlc),
-      (Platform.psp, Category.theme),
-      (Platform.psp, Category.update),
-      (Platform.psm, Category.game),
-      (Platform.psx, Category.game),
-      (Platform.ps3, Category.game),
-      (Platform.ps3, Category.dlc),
-      (Platform.ps3, Category.theme),
-      (Platform.ps3, Category.demo),
-    ];
+    final sortedSources = useMemoized(
+      () => sourceSorter(configProvider.config.sources),
+      [configProvider.config.sources],
+    );
 
     final tiles = useMemoized(() {
       List<Widget> result = [];
+      Platform? lastPlatform;
 
-      for (var (platform, category) in sourceOrder) {
-        if ((platform == Platform.psp ||
-                platform == Platform.psm ||
-                platform == Platform.ps3) &&
-            category == Category.game) {
+      for (var source in sortedSources) {
+        if (lastPlatform != null && lastPlatform != source.platform) {
           result.add(const Divider());
         }
 
-        final source = configProvider.config.sources.firstWhereOrNull(
-          (s) => s.platform == platform && s.category == category,
-        );
-
-        if (source != null) {
-          result.add(buildSourceTile(source));
-        }
+        result.add(buildSourceTile(source));
+        lastPlatform = source.platform;
       }
 
       return result;
-    }, [configProvider.config.sources]);
+    }, [sortedSources]);
 
     Future<void> updateHmacKey(String hmacKey) async => configProvider
         .updateConfig(configProvider.config.copyWith(hmacKey: hmacKey));
