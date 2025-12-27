@@ -64,7 +64,7 @@ class Downloads extends HookWidget {
         forceMaterialTransparency: true,
         actions: [
           PopupMenuButton<DownloadMenuAction>(
-            icon: const Icon(Icons.more_vert),
+            icon: const Icon(Icons.more_vert_rounded),
             onSelected: (action) {
               switch (action) {
                 case DownloadMenuAction.deleteCompleted:
@@ -96,7 +96,7 @@ class Downloads extends HookWidget {
                 value: DownloadMenuAction.deleteCompleted,
                 child: Row(
                   children: [
-                    const Icon(Icons.done_all, size: 20),
+                    const Icon(Icons.done_all_rounded, size: 20),
                     const SizedBox(width: 8),
                     Text(t.delete_completed),
                   ],
@@ -106,7 +106,11 @@ class Downloads extends HookWidget {
                 value: DownloadMenuAction.deleteAll,
                 child: Row(
                   children: [
-                    const Icon(Icons.delete_sweep, size: 20, color: Colors.red),
+                    const Icon(
+                      Icons.delete_sweep_rounded,
+                      size: 20,
+                      color: Colors.red,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       t.delete_all,
@@ -174,10 +178,11 @@ class Downloads extends HookWidget {
                 child: CachedNetworkImage(
                   imageUrl: getContentIcon(content, size: 96) ?? '',
                   fit: BoxFit.contain,
-                  placeholder: (context, url) =>
-                      const SizedBox(child: Center(child: Icon(Icons.gamepad))),
+                  placeholder: (context, url) => const SizedBox(
+                    child: Center(child: Icon(Icons.gamepad_rounded)),
+                  ),
                   errorWidget: (context, url, error) =>
-                      const Icon(Icons.gamepad),
+                      const Icon(Icons.gamepad_rounded),
                   errorListener: (_) {},
                 ),
               ),
@@ -212,12 +217,12 @@ class Downloads extends HookWidget {
                   isDownloading
                       ? IconButton(
                           tooltip: isExtracting ? t.extracting : t.pause,
-                          icon: const Icon(Icons.pause),
+                          icon: const Icon(Icons.pause_rounded),
                           onPressed: () => downloader.pause(contents),
                         )
                       : IconButton(
                           tooltip: t.download,
-                          icon: const Icon(Icons.download),
+                          icon: const Icon(Icons.download_rounded),
                           onPressed: () => downloader.add(
                             incompletedDownloads.map((e) => e.content).toList(),
                           ),

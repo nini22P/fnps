@@ -304,7 +304,7 @@ class Settings extends HookWidget {
             if (url != null)
               IconButton(
                 tooltip: t.sync,
-                icon: const Icon(Icons.sync),
+                icon: const Icon(Icons.sync_rounded),
                 onPressed:
                     source.syncStatus == SyncStatus.syncing ||
                         source.syncStatus == SyncStatus.queue

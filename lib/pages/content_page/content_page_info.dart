@@ -98,7 +98,7 @@ class ContentPageInfo extends HookWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: contentInfo.icon == null
-                            ? const Center(child: Icon(Icons.gamepad))
+                            ? const Center(child: Icon(Icons.gamepad_rounded))
                             : InkWell(
                                 onTap: () => _showImagePreview(context, [
                                   contentInfo.icon!,
@@ -114,7 +114,7 @@ class ContentPageInfo extends HookWidget {
                                     ),
                                   ),
                                   errorWidget: (context, url, error) =>
-                                      const Icon(Icons.gamepad),
+                                      const Icon(Icons.gamepad_rounded),
                                   errorListener: (_) {},
                                 ),
                               ),
@@ -292,7 +292,7 @@ class ContentPageInfo extends HookWidget {
                                           ),
                                         ),
                                     errorWidget: (context, url, error) =>
-                                        const Icon(Icons.error),
+                                        const Icon(Icons.error_rounded),
                                   ),
                                 ),
                               ),
@@ -365,7 +365,11 @@ void _showImagePreview(
               elevation: 0,
               scrolledUnderElevation: 0,
               leading: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
                 onPressed: () => Navigator.pop(context),
               ),
               title: Text(
@@ -374,7 +378,10 @@ void _showImagePreview(
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.open_in_browser, color: Colors.white),
+                  icon: const Icon(
+                    Icons.open_in_browser_rounded,
+                    color: Colors.white,
+                  ),
                   tooltip: 'Open in Browser',
                   onPressed: () => launchURL(images[currentIndex]),
                 ),
@@ -449,7 +456,7 @@ void _showImagePreview(
                           curve: Curves.easeInOut,
                         ),
                         icon: const Icon(
-                          Icons.chevron_left,
+                          Icons.chevron_left_rounded,
                           color: Colors.white,
                         ),
                       ),
@@ -470,7 +477,7 @@ void _showImagePreview(
                           curve: Curves.easeInOut,
                         ),
                         icon: const Icon(
-                          Icons.chevron_right,
+                          Icons.chevron_right_rounded,
                           color: Colors.white,
                         ),
                       ),

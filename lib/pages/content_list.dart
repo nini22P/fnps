@@ -59,9 +59,11 @@ class ContentList extends HookWidget {
               child: CachedNetworkImage(
                 imageUrl: getContentIcon(content, size: 96) ?? '',
                 fit: BoxFit.contain,
-                placeholder: (context, url) =>
-                    const SizedBox(child: Center(child: Icon(Icons.gamepad))),
-                errorWidget: (context, url, error) => const Icon(Icons.gamepad),
+                placeholder: (context, url) => const SizedBox(
+                  child: Center(child: Icon(Icons.gamepad_rounded)),
+                ),
+                errorWidget: (context, url, error) =>
+                    const Icon(Icons.gamepad_rounded),
                 errorListener: (_) {},
               ),
             ),
@@ -150,13 +152,13 @@ class ContentList extends HookWidget {
                     case DownloadStatus.paused:
                     case DownloadStatus.canceled:
                       return IconButton(
-                        icon: const Icon(Icons.download),
+                        icon: const Icon(Icons.download_rounded),
                         onPressed: () => downloader.add([content]),
                       );
                     case DownloadStatus.queued:
                     case DownloadStatus.downloading:
                       return IconButton(
-                        icon: const Icon(Icons.pause),
+                        icon: const Icon(Icons.pause_rounded),
                         onPressed: () => downloader.pause([content]),
                       );
                     case DownloadStatus.completed:
@@ -167,12 +169,12 @@ class ContentList extends HookWidget {
                         case ExtractStatus.completed:
                         case ExtractStatus.notNeeded:
                           return IconButton(
-                            icon: const Icon(Icons.delete),
+                            icon: const Icon(Icons.delete_rounded),
                             onPressed: () => downloader.remove([content]),
                           );
                         case ExtractStatus.failed:
                           return IconButton(
-                            icon: const Icon(Icons.restart_alt),
+                            icon: const Icon(Icons.restart_alt_rounded),
                             onPressed: () => downloader.add([content]),
                           );
                       }

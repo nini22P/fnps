@@ -142,18 +142,18 @@ class Contents extends HookWidget {
                   onChanged: (value) => searchText.value = value,
                   decoration: InputDecoration(
                     labelText: t.serach,
-                    prefixIcon: const Icon(Icons.search),
+                    prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (searchText.value.isNotEmpty)
                           IconButton(
-                            icon: const Icon(Icons.clear),
+                            icon: const Icon(Icons.clear_rounded),
                             onPressed: clearSearchText,
                           ),
                         IconButton(
-                          icon: const Icon(Icons.filter_list),
+                          icon: const Icon(Icons.filter_list_rounded),
                           onPressed: () => showPopup(
                             context: context,
                             child: const ContentsFilter(),
@@ -251,9 +251,11 @@ class _ContentListItem extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: getContentIcon(content, size: 96) ?? '',
               fit: BoxFit.contain,
-              placeholder: (context, url) =>
-                  const SizedBox(child: Center(child: Icon(Icons.gamepad))),
-              errorWidget: (context, url, error) => const Icon(Icons.gamepad),
+              placeholder: (context, url) => const SizedBox(
+                child: Center(child: Icon(Icons.gamepad_rounded)),
+              ),
+              errorWidget: (context, url, error) =>
+                  const Icon(Icons.gamepad_rounded),
               errorListener: (_) {},
             ),
           ),

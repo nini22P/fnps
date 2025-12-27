@@ -133,7 +133,7 @@ class ContentPage extends HookWidget {
                   ),
             actions: [
               PopupMenuButton<DownloadMenuAction>(
-                icon: const Icon(Icons.more_vert),
+                icon: const Icon(Icons.more_vert_rounded),
                 onSelected: (action) {
                   switch (action) {
                     case DownloadMenuAction.deleteCompleted:
@@ -159,7 +159,7 @@ class ContentPage extends HookWidget {
                     value: DownloadMenuAction.deleteCompleted,
                     child: Row(
                       children: [
-                        const Icon(Icons.done_all, size: 20),
+                        const Icon(Icons.done_all_rounded, size: 20),
                         const SizedBox(width: 8),
                         Text(t.delete_completed),
                       ],
@@ -170,7 +170,7 @@ class ContentPage extends HookWidget {
                     child: Row(
                       children: [
                         const Icon(
-                          Icons.delete_sweep,
+                          Icons.delete_sweep_rounded,
                           size: 20,
                           color: Colors.red,
                         ),
@@ -205,7 +205,11 @@ class ContentPage extends HookWidget {
           floatingActionButton: canDownloadContents.isEmpty
               ? null
               : FloatingActionButton.extended(
-                  icon: Icon(isDownloading ? Icons.pause : Icons.download),
+                  icon: Icon(
+                    isDownloading
+                        ? Icons.pause_rounded
+                        : Icons.download_rounded,
+                  ),
                   label: Text(
                     currentDownloads.isEmpty
                         ? canDownloadContents.length == 1 &&

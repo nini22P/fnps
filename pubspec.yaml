@@ -42,6 +42,7 @@ dependencies:
   open_file_manager: ^2.0.1
   dynamic_color: ^1.8.1
   package_info_plus: ^9.0.0
+  google_fonts: ^6.3.3
 
 dev_dependencies:
   flutter_test:

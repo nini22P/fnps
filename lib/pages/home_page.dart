@@ -42,15 +42,15 @@ class HomePage extends HookWidget {
               },
               destinations: [
                 NavigationRailDestination(
-                  icon: const Icon(Icons.apps),
+                  icon: const Icon(Icons.apps_rounded),
                   label: Text(t.browse),
                 ),
                 NavigationRailDestination(
-                  icon: const Icon(Icons.download),
+                  icon: const Icon(Icons.download_rounded),
                   label: Text(t.download),
                 ),
                 NavigationRailDestination(
-                  icon: const Icon(Icons.settings),
+                  icon: const Icon(Icons.settings_rounded),
                   label: Text(t.settings),
                 ),
               ],
@@ -81,15 +81,15 @@ class HomePage extends HookWidget {
               },
               items: <BottomNavigationBarItem>[
                 BottomNavigationBarItem(
-                  icon: const Icon(Icons.apps),
+                  icon: const Icon(Icons.apps_rounded),
                   label: t.browse,
                 ),
                 BottomNavigationBarItem(
-                  icon: const Icon(Icons.download),
+                  icon: const Icon(Icons.download_rounded),
                   label: t.download,
                 ),
                 BottomNavigationBarItem(
-                  icon: const Icon(Icons.settings),
+                  icon: const Icon(Icons.settings_rounded),
                   label: t.settings,
                 ),
               ],
