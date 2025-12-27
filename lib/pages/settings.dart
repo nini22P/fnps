@@ -405,7 +405,7 @@ class Settings extends HookWidget {
                         updateHmacKey(hmacKeyController.text);
                         Navigator.pop(context, 'OK');
                       },
-                      child: Text(t.ok),
+                      child: Text(t.confirm),
                     ),
                   ],
                 ),

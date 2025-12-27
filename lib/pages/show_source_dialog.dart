@@ -5,11 +5,13 @@ import 'package:fnps/models/config.dart';
 import 'package:fnps/utils/get_localizations.dart';
 
 Future<Source?> showSourceDialog(
-        BuildContext context, Source source, String title) async =>
-    await showDialog<Source>(
-      context: context,
-      builder: (context) => SourceDialog(source: source, title: title),
-    );
+  BuildContext context,
+  Source source,
+  String title,
+) async => await showDialog<Source>(
+  context: context,
+  builder: (context) => SourceDialog(source: source, title: title),
+);
 
 class SourceDialog extends HookWidget {
   const SourceDialog({super.key, required this.source, required this.title});
@@ -21,17 +23,21 @@ class SourceDialog extends HookWidget {
   Widget build(BuildContext context) {
     final t = getLocalizations(context);
 
-    final initSource = Config.initConfig.sources.firstWhereOrNull((item) =>
-        item.platform == source.platform && item.category == source.category);
+    final initSource = Config.initConfig.sources.firstWhereOrNull(
+      (item) =>
+          item.platform == source.platform && item.category == source.category,
+    );
 
     final initUrl = initSource?.url;
 
     final textController = useTextEditingController(text: source.url);
-    final selectedUrl = useState(source.url == null
-        ? null
-        : source.url == initUrl
-            ? initUrl
-            : 'custom');
+    final selectedUrl = useState(
+      source.url == null
+          ? null
+          : source.url == initUrl
+          ? initUrl
+          : 'custom',
+    );
 
     return AlertDialog(
       title: Text(
@@ -111,7 +117,7 @@ class SourceDialog extends HookWidget {
                 ),
               );
             },
-            child: Text(t.ok),
+            child: Text(t.confirm),
           ),
         if (selectedUrl.value == null)
           TextButton(
@@ -126,7 +132,7 @@ class SourceDialog extends HookWidget {
               );
             },
             child: Text(t.select_local_file),
-          )
+          ),
       ],
     );
   }
