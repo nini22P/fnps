@@ -530,55 +530,100 @@ Future<bool> _downloadMultiSegment({
   }
 
   final List<_Segment> segments = _buildSegments(totalLength, segmentCount);
+  final File mergingFile = File('${config.savePath}.merging');
 
-  int initialBytes = 0;
+  int mergingLen = await mergingFile.exists() ? await mergingFile.length() : 0;
+  if (mergingLen > totalLength) {
+    await mergingFile.delete();
+    mergingLen = 0;
+  }
+
+  // If a previous merge was interrupted mid-segment and its part file is missing
+  // or shorter than the already-merged prefix, roll mergingFile back to that
+  // segment's boundary so it can be re-downloaded cleanly.
+  if (mergingLen > 0) {
+    for (final _Segment seg in segments) {
+      if (mergingLen > seg.start && mergingLen < seg.end + 1) {
+        final File partFile = File('${config.savePath}.part.${seg.index}');
+        final int partLen = await partFile.exists()
+            ? await partFile.length()
+            : 0;
+        if (partLen < mergingLen - seg.start) {
+          final RandomAccessFile raf = await mergingFile.open(
+            mode: FileMode.append,
+          );
+          try {
+            await raf.truncate(seg.start);
+          } finally {
+            await raf.close();
+          }
+          mergingLen = seg.start;
+        }
+        break;
+      }
+    }
+  }
+
+  final List<_Segment> pendingSegments = <_Segment>[];
+  int initialBytes = mergingLen;
+
   for (final _Segment seg in segments) {
+    if (mergingLen >= seg.end + 1) {
+      continue;
+    }
+    pendingSegments.add(seg);
+
     final File partFile = File('${config.savePath}.part.${seg.index}');
     if (await partFile.exists()) {
       final int len = await partFile.length();
       if (len > seg.length) {
         await partFile.delete();
       } else {
-        initialBytes += len;
+        final int alreadyMerged = (mergingLen - seg.start).clamp(0, seg.length);
+        if (len > alreadyMerged) {
+          initialBytes += len - alreadyMerged;
+        }
       }
     }
   }
   onInitialBytes(initialBytes);
 
-  int nextSegmentIdx = 0;
-  Object? workerError;
+  if (pendingSegments.isNotEmpty) {
+    int nextSegmentIdx = 0;
+    Object? workerError;
 
-  Future<void> runWorker() async {
-    while (!isStopped() && workerError == null) {
-      if (nextSegmentIdx >= segments.length) return;
-      final _Segment seg = segments[nextSegmentIdx++];
-      try {
-        await _downloadSegmentWithRetry(
-          client: client,
-          url: config.url,
-          partPath: '${config.savePath}.part.${seg.index}',
-          segment: seg,
-          isStopped: isStopped,
-          onDeltaBytes: onDeltaBytes,
-        );
-      } catch (e) {
-        if (!isStopped()) {
-          workerError ??= e;
+    Future<void> runWorker() async {
+      while (!isStopped() && workerError == null) {
+        if (nextSegmentIdx >= pendingSegments.length) return;
+        final _Segment seg = pendingSegments[nextSegmentIdx++];
+        try {
+          await _downloadSegmentWithRetry(
+            client: client,
+            url: config.url,
+            partPath: '${config.savePath}.part.${seg.index}',
+            segment: seg,
+            isStopped: isStopped,
+            onDeltaBytes: onDeltaBytes,
+          );
+        } catch (e) {
+          if (!isStopped()) {
+            workerError ??= e;
+          }
+          return;
         }
-        return;
       }
     }
+
+    final int workerCount = min(config.connections, pendingSegments.length);
+    await Future.wait(
+      List<Future<void>>.generate(workerCount, (_) => runWorker()),
+    );
+
+    if (isStopped()) return false;
+    if (workerError != null) throw workerError!;
   }
 
-  final int workerCount = min(config.connections, segmentCount);
-  await Future.wait(
-    List<Future<void>>.generate(workerCount, (_) => runWorker()),
-  );
-
-  if (isStopped()) return false;
-  if (workerError != null) throw workerError!;
-
-  await _mergeSegments(config.savePath, segmentCount, isStopped);
+  await _mergeSegments(config.savePath, segments, isStopped);
   if (isStopped()) return false;
 
   if (await metaFile.exists()) {
@@ -672,29 +717,42 @@ Future<void> _downloadSegmentWithRetry({
 
 Future<void> _mergeSegments(
   String savePath,
-  int segmentCount,
+  List<_Segment> segments,
   bool Function() isStopped,
 ) async {
   final File mergingFile = File('$savePath.merging');
-  if (await mergingFile.exists()) {
-    await mergingFile.delete();
-  }
+  int mergingLen = await mergingFile.exists() ? await mergingFile.length() : 0;
 
-  final File firstPart = File('$savePath.part.0');
-  await firstPart.rename(mergingFile.path);
+  if (mergingLen == 0 && segments.isNotEmpty) {
+    final File firstPart = File('$savePath.part.${segments.first.index}');
+    if (await firstPart.exists()) {
+      await firstPart.rename(mergingFile.path);
+      mergingLen = segments.first.length;
+    }
+  }
 
   final RandomAccessFile outRaf = await mergingFile.open(
     mode: FileMode.writeOnlyAppend,
   );
   try {
-    for (int i = 1; i < segmentCount; i++) {
+    for (final _Segment seg in segments) {
       if (isStopped()) return;
-      final File part = File('$savePath.part.$i');
-      await for (final List<int> chunk in part.openRead()) {
+
+      final File part = File('$savePath.part.${seg.index}');
+      if (mergingLen >= seg.end + 1) {
+        if (await part.exists()) {
+          await part.delete();
+        }
+        continue;
+      }
+
+      final int skipBytes = (mergingLen - seg.start).clamp(0, seg.length);
+      await for (final List<int> chunk in part.openRead(skipBytes)) {
         if (isStopped()) return;
         await outRaf.writeFrom(chunk);
       }
       await outRaf.flush();
+      mergingLen = seg.end + 1;
       await part.delete();
     }
   } finally {
