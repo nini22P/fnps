@@ -46,9 +46,3 @@ download_file(
     "6c377b61e1047460136b61fdb05c192570712b7797b284468fc7ded96e1ac760"
     "pkg2zip.exe"
 )
-
-download_file(
-    "https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip"
-    "67d015301eef0b612191212d564c5bb0a14b5b9c4796b76454276a4d28d9b288" 
-    "aria2c.exe"
-)

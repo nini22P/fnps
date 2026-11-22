@@ -61,23 +61,5 @@ Future<List<String>> getPkg2zipPath() async {
   return path;
 }
 
-Future<List<String>> getAria2cPath() async {
-  final nativeLibraryPath = pathConv(await getNativeLibraryDir() ?? '');
-  final executableDirPath = pathConv(await getExecutableDirPath());
-  final targetFolder = Platform.isAndroid
-      ? nativeLibraryPath
-      : executableDirPath;
-  final path = Platform.isAndroid
-      ? [...targetFolder, 'libaria2c.so']
-      : Platform.isWindows
-      ? [...targetFolder, 'aria2c.exe']
-      : [...targetFolder, 'aria2c'];
-  final file = File(pathJoin(path));
-  if (!(await file.exists())) {
-    logger('Not found aria2c at $path');
-  }
-  return path;
-}
-
 String pathJoin(List<String> path) =>
     (!Platform.isWindows ? '/' : '') + path.join('/');

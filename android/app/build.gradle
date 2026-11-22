@@ -83,16 +83,6 @@ task downloadFiles {
                 "sha256": "af8f0b35fa94c7fe6e56daa9f25d8a5a6a31e4840f956e537976674eb12c0e7e",
                 "destination": file("./src/main/jniLibs/armeabi-v7a/libpkg2zip.so")
             ],
-            [
-                "url": "https://github.com/devgianlu/aria2-android/releases/download/v1.35.0/aria2c-arm64-v8a",
-                "sha256": "88b8b5feec7e4e7392f129fed4cf61f52a88fdc5dfe1e1464ed467fb41bd1a7f",
-                "destination": file("./src/main/jniLibs/arm64-v8a/libaria2c.so")
-            ],
-            [
-                "url": "https://github.com/devgianlu/aria2-android/releases/download/v1.35.0/aria2c-armeabi-v7a",
-                "sha256": "7556bfad1e6cd4780acc768be1a5a0f064d8dd60d463e2b109c821fc227548fd",
-                "destination": file("./src/main/jniLibs/armeabi-v7a/libaria2c.so")
-            ],
         ]
 
         filesToDownload.each { fileInfo ->
