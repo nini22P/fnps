@@ -4,6 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:fnps/models/config.dart';
 import 'package:fnps/provider/config_provider.dart';
 import 'package:fnps/utils/content_info.dart';
+import 'package:fnps/utils/download_status_text.dart';
 import 'package:fnps/utils/logger.dart';
 import 'package:fnps/utils/open_explorer.dart';
 import 'package:fnps/utils/rap.dart';
@@ -80,59 +81,13 @@ class ContentList extends HookWidget {
               CustomBadge(text: content.category.name, tertiary: true),
               if (content.pkgDirectLink != null)
                 CustomBadge(text: fileSizeConv(content.fileSize)!),
-              if (downloadItem != null &&
-                  downloadItem.downloadStatus != DownloadStatus.completed)
+              if (downloadItem != null)
                 CustomBadge(
-                  text: () {
-                    final progress =
-                        (downloadItem.totalLength > 0 &&
-                            downloadItem.completedLength > 0)
-                        ? (downloadItem.completedLength /
-                                  downloadItem.totalLength *
-                                  100)
-                              .toStringAsFixed(2)
-                        : '0.00';
-                    switch (downloadItem.downloadStatus) {
-                      case DownloadStatus.queued:
-                        return '${t.download_queued} $progress%';
-                      case DownloadStatus.downloading:
-                        return '${t.downloading} $progress%';
-                      case DownloadStatus.completed:
-                        return '${t.download_completed} $progress%';
-                      case DownloadStatus.failed:
-                        return '${t.download_failed} $progress%';
-                      case DownloadStatus.paused:
-                        return '${t.download_paused} $progress%';
-                      case DownloadStatus.canceled:
-                        return '${t.download_canceled} $progress%';
-                    }
-                  }(),
-                ),
-              if (downloadItem != null &&
-                  downloadItem.downloadStatus == DownloadStatus.completed)
-                CustomBadge(
-                  text: () {
-                    switch (downloadItem.extractStatus) {
-                      case ExtractStatus.queued:
-                        return pkg2zipOutputMode == Pkg2zipOutputMode.folder
-                            ? t.extract_queued
-                            : t.convert_queued;
-                      case ExtractStatus.extracting:
-                        return pkg2zipOutputMode == Pkg2zipOutputMode.folder
-                            ? t.extracting
-                            : t.converting;
-                      case ExtractStatus.completed:
-                        return pkg2zipOutputMode == Pkg2zipOutputMode.folder
-                            ? t.extract_completed
-                            : t.convert_completed;
-                      case ExtractStatus.failed:
-                        return pkg2zipOutputMode == Pkg2zipOutputMode.folder
-                            ? t.extract_failed
-                            : t.convert_failed;
-                      case ExtractStatus.notNeeded:
-                        return t.download_completed;
-                    }
-                  }(),
+                  text: formatDownloadItemStatus(
+                    downloadItem,
+                    t,
+                    pkg2zipOutputMode,
+                  ),
                 ),
             ],
           ),

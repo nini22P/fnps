@@ -1,57 +1,18 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
-import 'package:fnps/downloader/aria2.dart';
-import 'package:fnps/models/aria2.dart';
-import 'package:fnps/models/config.dart';
-import 'package:fnps/provider/config_provider.dart';
-import 'package:fnps/utils/rap.dart';
-import 'package:hive_ce/hive.dart';
+import 'package:fnps/downloader/chunk_downloader.dart';
 import 'package:fnps/downloader/create_download_item.dart';
 import 'package:fnps/hive/hive_box_names.dart';
+import 'package:fnps/models/config.dart';
 import 'package:fnps/models/content.dart';
 import 'package:fnps/models/download_item.dart';
+import 'package:fnps/provider/config_provider.dart';
 import 'package:fnps/utils/logger.dart';
 import 'package:fnps/utils/path.dart';
 import 'package:fnps/utils/pkg.dart';
-
-class Aria2Safe {
-  static Future<void> remove(String gid) async {
-    try {
-      await Aria2.instance.remove(gid);
-    } catch (e) {
-      if (e.toString().contains('code: 1') ||
-          e.toString().contains('not found')) {
-        return;
-      }
-      logger('Aria2Safe remove error (ignored): $e');
-    }
-  }
-
-  static Future<void> pause(String gid) async {
-    try {
-      await Aria2.instance.pause(gid);
-    } catch (e) {
-      if (e.toString().contains('code: 1') ||
-          e.toString().contains('not found')) {
-        return;
-      }
-      logger('Aria2Safe pause error (ignored): $e');
-    }
-  }
-
-  static Future<void> cleanResult(String gid) async {
-    try {
-      await Aria2.instance.removeDownloadResult(gid);
-    } catch (e) {
-      if (e.toString().contains('code: 1') ||
-          e.toString().contains('not found')) {
-        return;
-      }
-      // logger('Aria2Safe cleanResult warning: $e');
-    }
-  }
-}
+import 'package:fnps/utils/rap.dart';
+import 'package:hive_ce/hive.dart';
 
 class Downloader {
   Downloader._privateConstructor();
@@ -62,32 +23,32 @@ class Downloader {
 
   Box<DownloadItem> downloadBox = Hive.box<DownloadItem>(downloadBoxName);
 
-  final Queue<Content> _queue = Queue();
+  final Queue<Content> _queue = Queue<Content>();
+  final Map<String, ChunkDownloadTask> _activeTasks =
+      <String, ChunkDownloadTask>{};
+  final Map<String, Future<void>> _activeFutures = <String, Future<void>>{};
+  final Map<String, DateTime> _lastFlushTime = <String, DateTime>{};
+
   int maxConcurrentTasks = 3;
-
-  final Map<String, String> gidToItemId = {}; // gid -> downloadItem.id
-
-  Timer? _pollingTimer;
-  bool _isPolling = false;
-  Duration pollInterval = Duration(milliseconds: 1500);
+  Duration _flushInterval = const Duration(milliseconds: 1000);
 
   Future<void> init() async {
-    final downloads = downloadBox.values.toList();
-    for (final download in downloads) {
-      if ([
+    final List<DownloadItem> downloads = downloadBox.values.toList();
+    for (final DownloadItem download in downloads) {
+      if (<DownloadStatus>[
         DownloadStatus.downloading,
         DownloadStatus.queued,
       ].contains(download.downloadStatus)) {
-        downloadBox.put(
+        await downloadBox.put(
           download.id,
           download.copyWith(downloadStatus: DownloadStatus.paused),
         );
       } else if (download.downloadStatus == DownloadStatus.completed &&
-          [
+          <ExtractStatus>[
             ExtractStatus.queued,
             ExtractStatus.extracting,
           ].contains(download.extractStatus)) {
-        downloadBox.put(
+        await downloadBox.put(
           download.id,
           download.copyWith(extractStatus: ExtractStatus.failed),
         );
@@ -95,96 +56,35 @@ class Downloader {
     }
   }
 
-  void _startPolling() {
-    if (_isPolling) return;
-
-    _isPolling = true;
-    logger('Starting polling...');
-
-    _pollingTimer = Timer.periodic(pollInterval, (timer) async {
-      try {
-        final globalStat = await Aria2.instance.getGlobalStat();
-
-        if (globalStat.numActive == 0 &&
-            globalStat.numStopped == 0 &&
-            _queue.isEmpty) {
-          logger('Idle state detected, stopping polling...');
-          _stopPolling();
-          return;
-        }
-
-        if (globalStat.numActive != 0) {
-          final active = await Aria2.instance.tellActive();
-          for (final status in active) {
-            _updateDownloadStatus(status);
-          }
-        }
-
-        // if (globalStat.numWaiting != 0) {
-        //   final waiting = await Aria2.instance.tellWaiting();
-        // }
-
-        if (globalStat.numStopped != 0) {
-          final stopped = await Aria2.instance.tellStopped();
-          for (final status in stopped) {
-            await _handleStoppedStatus(status);
-          }
-        }
-
-        if (gidToItemId.length < maxConcurrentTasks && _queue.isNotEmpty) {
-          logger(
-            'Polling Scheduler: Slots available (${gidToItemId.length}/$maxConcurrentTasks), starting next task...',
-          );
-          _start();
-        }
-      } catch (e) {
-        logger("Aria2 polling error: $e");
-      }
-    });
-  }
-
-  void _stopPolling() {
-    if (_pollingTimer != null) {
-      _pollingTimer!.cancel();
-      _pollingTimer = null;
-      _isPolling = false;
-      logger('Polling stopped');
-    }
-  }
-
   void setPollInterval(Duration duration) {
-    if (pollInterval == duration) return;
-
-    logger('Updating poll interval to: ${duration.inMilliseconds}ms');
-    pollInterval = duration;
-
-    if (_isPolling) {
-      _stopPolling();
-      _startPolling();
-    }
+    if (_flushInterval == duration) return;
+    _flushInterval = duration;
   }
+
+  bool _isQueued(String id) => _queue.any((Content item) => item.getID() == id);
 
   Future<void> add(List<Content> contents) async {
-    for (final content in contents) {
-      final id = content.getID();
+    for (final Content content in contents) {
+      final String? id = content.getID();
       if (id == null) continue;
 
-      DownloadItem? existingItem = downloadBox.get(id);
+      final DownloadItem? existingItem = downloadBox.get(id);
 
       if (existingItem != null) {
-        if (existingItem.downloadStatus == DownloadStatus.downloading ||
-            _queue.contains(content)) {
+        if (_activeTasks.containsKey(id) ||
+            existingItem.downloadStatus == DownloadStatus.downloading ||
+            _isQueued(id)) {
           logger('Already downloading/queued $id...');
           continue;
         }
 
-        if ([
+        if (<DownloadStatus>[
           DownloadStatus.paused,
           DownloadStatus.failed,
           DownloadStatus.canceled,
         ].contains(existingItem.downloadStatus)) {
           logger('Resuming download $id...');
-          downloadBox.put(
+          await downloadBox.put(
             existingItem.id,
             existingItem.copyWith(downloadStatus: DownloadStatus.queued),
           );
@@ -194,23 +94,24 @@ class Downloader {
 
         if (existingItem.downloadStatus == DownloadStatus.completed &&
             existingItem.extractStatus == ExtractStatus.failed) {
-          final pkgPath = pathJoin([
+          final String pkgPath = pathJoin(<String>[
             ...existingItem.directory,
             existingItem.filename,
           ]);
-          final pkgFile = File(pkgPath);
+          final File pkgFile = File(pkgPath);
 
           if (await pkgFile.exists()) {
             logger('Re-extracting $id...');
-            await _extractDownload(existingItem);
+            unawaited(_extractDownload(existingItem));
             continue;
           } else {
             logger('PKG file not found, re-downloading $id...');
-            downloadBox.put(
+            await downloadBox.put(
               existingItem.id,
               existingItem.copyWith(
                 downloadStatus: DownloadStatus.queued,
                 extractStatus: ExtractStatus.queued,
+                completedLength: 0,
               ),
             );
             _queue.add(content);
@@ -224,7 +125,7 @@ class Downloader {
         continue;
       }
 
-      final downloadItem = await createDownloadItem(content);
+      final DownloadItem? downloadItem = await createDownloadItem(content);
       if (downloadItem == null) continue;
 
       logger('Adding $id to download queue...');
@@ -235,31 +136,52 @@ class Downloader {
     _start();
   }
 
-  Future<void> _start() async {
-    if (gidToItemId.length >= maxConcurrentTasks || _queue.isEmpty) {
-      return;
-    }
+  void _start() {
+    while (_activeTasks.length < maxConcurrentTasks && _queue.isNotEmpty) {
+      final Content content = _queue.removeFirst();
+      final String? id = content.getID();
+      final String? url = content.pkgDirectLink;
+      if (id == null || url == null || _activeTasks.containsKey(id)) {
+        continue;
+      }
 
-    while (gidToItemId.length < maxConcurrentTasks && _queue.isNotEmpty) {
-      final content = _queue.removeFirst();
+      final DownloadItem? downloadItem = downloadBox.get(id);
+      if (downloadItem == null) {
+        continue;
+      }
+
+      final String filePath = pathJoin(<String>[
+        ...downloadItem.directory,
+        downloadItem.filename,
+      ]);
+      final ChunkDownloadTask task = ChunkDownloadTask(
+        url: url,
+        savePath: filePath,
+      );
+      _activeTasks[id] = task;
+
       logger(
-        'Starting task: ${gidToItemId.length + 1} / $maxConcurrentTasks, Queue size: ${_queue.length}',
+        'Starting task: ${_activeTasks.length} / $maxConcurrentTasks, Queue size: ${_queue.length}',
       );
 
-      _download(content);
-
-      await Future.delayed(const Duration(milliseconds: 1000));
+      _activeFutures[id] = _download(content, id, downloadItem, task);
     }
   }
 
   Future<void> pause(List<Content> contents) async {
-    _queue.removeWhere((item) => contents.toSet().contains(item));
+    final Set<String> targetIds = contents
+        .map((Content e) => e.getID())
+        .whereType<String>()
+        .toSet();
+    _queue.removeWhere((Content item) => targetIds.contains(item.getID()));
 
-    for (final content in contents) {
-      final downloadItem = downloadBox.get(content.getID());
+    for (final Content content in contents) {
+      final String? id = content.getID();
+      if (id == null) continue;
 
+      final DownloadItem? downloadItem = downloadBox.get(id);
       if (downloadItem == null ||
-          [
+          <DownloadStatus>[
             DownloadStatus.canceled,
             DownloadStatus.completed,
             DownloadStatus.failed,
@@ -267,18 +189,10 @@ class Downloader {
         continue;
       }
 
-      logger('Pausing ${downloadItem.id}...');
+      logger('Pausing $id...');
+      _activeTasks[id]?.pause();
 
-      String? gid;
-      gidToItemId.forEach((key, value) {
-        if (value == downloadItem.id) gid = key;
-      });
-
-      if (gid != null) {
-        await Aria2Safe.pause(gid!);
-      }
-
-      downloadBox.put(
+      await downloadBox.put(
         downloadItem.id,
         downloadItem.copyWith(downloadStatus: DownloadStatus.paused),
       );
@@ -286,52 +200,46 @@ class Downloader {
   }
 
   Future<void> remove(List<Content> contents) async {
-    _queue.removeWhere((item) => contents.toSet().contains(item));
+    final Set<String> targetIds = contents
+        .map((Content e) => e.getID())
+        .whereType<String>()
+        .toSet();
+    _queue.removeWhere((Content item) => targetIds.contains(item.getID()));
 
-    for (final content in contents) {
+    for (final Content content in contents) {
+      final String? id = content.getID();
+      if (id == null) continue;
+
       try {
-        final downloadItem = downloadBox.get(content.getID());
+        final DownloadItem? downloadItem = downloadBox.get(id);
+        final ChunkDownloadTask? activeTask = _activeTasks[id];
+        final Future<void>? activeFuture = _activeFutures[id];
+
+        if (activeTask != null) {
+          activeTask.cancel();
+        }
+        if (activeFuture != null) {
+          await activeFuture;
+        }
+
         if (downloadItem != null) {
-          String? gid;
-          gidToItemId.forEach((key, value) {
-            if (value == downloadItem.id) gid = key;
-          });
+          await downloadBox.delete(id);
 
-          if (gid != null) {
-            try {
-              await Aria2Safe.remove(gid!);
-              await Aria2Safe.cleanResult(gid!);
-              logger('Aria2 task removed request sent: gid=$gid');
-            } finally {
-              if (gidToItemId.containsKey(gid)) {
-                gidToItemId.remove(gid);
-              }
-            }
-          }
-
-          await downloadBox.delete(content.getID());
-
-          final String filePath = pathJoin([
+          final String filePath = pathJoin(<String>[
             ...downloadItem.directory,
             downloadItem.filename,
           ]);
-          final String aria2FilePath = '$filePath.aria2';
+
+          await ChunkDownloadTask.cleanupTempFiles(filePath);
 
           try {
-            final f = File(filePath);
+            final File f = File(filePath);
             if (await f.exists()) await f.delete();
           } catch (e) {
             logger('Failed delete file: $filePath', error: e);
           }
-
-          try {
-            final f = File(aria2FilePath);
-            if (await f.exists()) await f.delete();
-          } catch (e) {
-            logger('Failed delete aria2 file: $aria2FilePath', error: e);
-          }
         }
-        logger('Removed ${content.getID()} successfully.');
+        logger('Removed $id successfully.');
       } catch (e) {
         logger('Error removing download item: $e');
       }
@@ -340,178 +248,154 @@ class Downloader {
     _start();
   }
 
-  Future<void> _download(Content content) async {
-    final String? url = content.pkgDirectLink;
-    if (url == null) {
-      _start();
-      return;
-    }
-
-    bool success = false;
-    String? gid;
-
+  Future<void> _download(
+    Content content,
+    String id,
+    DownloadItem downloadItem,
+    ChunkDownloadTask task,
+  ) async {
     try {
-      DownloadItem? downloadItem = downloadBox.get(content.getID());
-      if (downloadItem == null) {
-        _start();
-        return;
-      }
-
       logger('Starting download for ${content.name}');
 
-      downloadBox.put(
+      await downloadBox.put(
         downloadItem.id,
         downloadItem.copyWith(downloadStatus: DownloadStatus.downloading),
       );
 
-      final String dir = pathJoin(downloadItem.directory);
-      final String filename = downloadItem.filename;
+      final ChunkDownloadResult result = await task.start(
+        onProgress: (int completed, int total) {
+          final DateTime now = DateTime.now();
+          final DateTime? lastFlush = _lastFlushTime[id];
+          if (lastFlush != null && now.difference(lastFlush) < _flushInterval) {
+            return;
+          }
+          _lastFlushTime[id] = now;
 
-      gid = await Aria2.instance.addUri(url, dir, filename);
+          final DownloadItem? current = downloadBox.get(id);
+          if (current == null ||
+              current.downloadStatus != DownloadStatus.downloading) {
+            return;
+          }
 
-      gidToItemId[gid] = downloadItem.id;
-      success = true;
+          downloadBox.put(
+            current.id,
+            current.copyWith(
+              totalLength: total > 0 ? total : current.totalLength,
+              completedLength: completed,
+            ),
+          );
+        },
+      );
 
-      logger('Download added to aria2: gid=$gid, file=$filename');
+      final DownloadItem? latest = downloadBox.get(id);
+      if (latest == null) return;
 
-      if (!_isPolling) {
-        _startPolling();
+      switch (result.status) {
+        case ChunkDownloadStatus.completed:
+          logger('Download completed: ${latest.filename}');
+          final int finalTotal = result.totalLength > 0
+              ? result.totalLength
+              : latest.totalLength;
+          final DownloadItem completedItem = latest.copyWith(
+            totalLength: finalTotal,
+            completedLength: finalTotal,
+            downloadStatus: DownloadStatus.completed,
+          );
+          await downloadBox.put(latest.id, completedItem);
+
+          final bool extracted = await _extractDownload(completedItem);
+          if (!extracted) {
+            logger('Extract failed for: $id');
+          }
+          break;
+
+        case ChunkDownloadStatus.paused:
+          await downloadBox.put(
+            latest.id,
+            latest.copyWith(
+              totalLength: result.totalLength > 0
+                  ? result.totalLength
+                  : latest.totalLength,
+              completedLength: result.completedLength > 0
+                  ? result.completedLength
+                  : latest.completedLength,
+              downloadStatus: DownloadStatus.paused,
+            ),
+          );
+          break;
+
+        case ChunkDownloadStatus.canceled:
+          break;
+
+        case ChunkDownloadStatus.failed:
+          logger(
+            'Download error [$id]: ${latest.filename}',
+            error: result.errorMessage,
+          );
+          await downloadBox.put(
+            latest.id,
+            latest.copyWith(
+              totalLength: result.totalLength > 0
+                  ? result.totalLength
+                  : latest.totalLength,
+              completedLength: result.completedLength > 0
+                  ? result.completedLength
+                  : latest.completedLength,
+              downloadStatus: DownloadStatus.failed,
+            ),
+          );
+          break;
       }
     } catch (e) {
-      logger('Failed to add download to aria2: ${content.getID()}', error: e);
-
-      DownloadItem? downloadItem = downloadBox.get(content.getID());
-      if (downloadItem != null) {
-        downloadBox.put(
-          downloadItem.id,
-          downloadItem.copyWith(downloadStatus: DownloadStatus.failed),
-        );
-      }
-
-      if (gid != null) {
-        gidToItemId.remove(gid);
-      }
-    } finally {
-      if (!success) {
-        _start();
-      }
-    }
-  }
-
-  void _updateDownloadStatus(Aria2Status status) {
-    final itemId = gidToItemId[status.gid];
-    if (itemId == null) return;
-
-    final downloadItem = downloadBox.get(itemId);
-    if (downloadItem == null) return;
-
-    if (downloadItem.downloadStatus != DownloadStatus.downloading) return;
-
-    downloadBox.put(
-      downloadItem.id,
-      downloadItem.copyWith(
-        totalLength: status.totalLength,
-        completedLength: status.completedLength,
-      ),
-    );
-  }
-
-  Future<void> _handleStoppedStatus(Aria2Status status) async {
-    final itemId = gidToItemId[status.gid];
-    if (itemId == null) {
-      await Aria2Safe.cleanResult(status.gid);
-      return;
-    }
-
-    final downloadItem = downloadBox.get(itemId);
-    if (downloadItem == null) {
-      gidToItemId.remove(status.gid);
-      await Aria2Safe.cleanResult(status.gid);
-      return;
-    }
-
-    if (downloadItem.extractStatus == ExtractStatus.extracting ||
-        downloadItem.extractStatus == ExtractStatus.completed ||
-        downloadItem.extractStatus == ExtractStatus.notNeeded) {
-      gidToItemId.remove(status.gid);
-      await Aria2Safe.cleanResult(status.gid);
-
-      _start();
-      return;
-    }
-
-    try {
-      if (status.status == 'complete') {
-        logger('Download completed: ${downloadItem.filename}');
-
-        downloadBox.put(
-          downloadItem.id,
-          downloadItem.copyWith(
-            completedLength: downloadItem.totalLength,
-            downloadStatus: DownloadStatus.completed,
-          ),
-        );
-
-        final result = await _extractDownload(
-          downloadItem.copyWith(
-            completedLength: downloadItem.totalLength,
-            downloadStatus: DownloadStatus.completed,
-          ),
-        );
-
-        if (!result) {
-          logger('Extract failed for: ${status.gid}');
-        }
-      } else if (status.status == 'error') {
-        logger('Download error [${status.gid}]: ${downloadItem.filename}');
-        downloadBox.put(
-          downloadItem.id,
-          downloadItem.copyWith(downloadStatus: DownloadStatus.failed),
+      logger('Failed to download $id', error: e);
+      final DownloadItem? current = downloadBox.get(id);
+      if (current != null) {
+        await downloadBox.put(
+          current.id,
+          current.copyWith(downloadStatus: DownloadStatus.failed),
         );
       }
     } finally {
-      await Aria2Safe.cleanResult(status.gid);
-      if (gidToItemId.containsKey(status.gid)) {
-        gidToItemId.remove(status.gid);
-      }
-
+      _activeTasks.remove(id);
+      _activeFutures.remove(id);
+      _lastFlushTime.remove(id);
       _start();
     }
   }
 
   Future<bool> _extractDownload(DownloadItem downloadItem) async {
-    final List<String> path = [
+    final List<String> path = <String>[
       ...downloadItem.directory,
       downloadItem.filename,
     ];
 
-    downloadBox.put(
+    await downloadBox.put(
       downloadItem.id,
       downloadItem.copyWith(extractStatus: ExtractStatus.extracting),
     );
 
     try {
-      final pkgName = await getPkgName(path);
+      final String? pkgName = await getPkgName(path);
       logger('pkgName: $pkgName');
     } catch (e) {
       logger('getPkgName failed:', error: e);
     }
 
-    final config = await ConfigProvider().loadConfig();
+    final Config config = await ConfigProvider().loadConfig();
 
-    final result = await pkg2zip(
+    final bool result = await pkg2zip(
       path: path,
       extract: config.pkg2zipOutputMode == Pkg2zipOutputMode.folder,
       zRIF: downloadItem.content.zRIF,
     );
 
     if (result) {
-      downloadBox.put(
+      await downloadBox.put(
         downloadItem.id,
         downloadItem.copyWith(extractStatus: ExtractStatus.completed),
       );
 
-      final file = File(pathJoin(path));
+      final File file = File(pathJoin(path));
       if (await file.exists()) {
         await file.delete();
       }
@@ -525,11 +409,12 @@ class Downloader {
         await downloadRAP(downloadItem.content);
       }
 
-      final extractStatus = downloadItem.content.platform == Platform.ps3
+      final ExtractStatus extractStatus =
+          downloadItem.content.platform == Platform.ps3
           ? ExtractStatus.notNeeded
           : ExtractStatus.failed;
 
-      downloadBox.put(
+      await downloadBox.put(
         downloadItem.id,
         downloadItem.copyWith(extractStatus: extractStatus),
       );

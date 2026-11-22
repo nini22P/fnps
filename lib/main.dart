@@ -3,7 +3,6 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:fnps/downloader/aria2.dart';
 import 'package:fnps/l10n/app_localizations.dart';
 import 'package:fnps/theme.dart';
 import 'package:fnps/utils/logger.dart';
@@ -46,7 +45,6 @@ Future<void> main() async {
   await openBox<Content>(psxBoxName);
   await openBox<Content>(ps3BoxName);
 
-  await Aria2.instance.init();
   await Downloader.instance.init();
 
   runApp(

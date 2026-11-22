@@ -43,7 +43,7 @@ include("../download_file.cmake")
 
 download_file(
     "https://github.com/nini22P/pkg2zip/releases/download/latest/pkg2zip-windows-x64.exe" 
-    "2e43bcf1a32dd2db917c359bcb337fc44b9b13806319fc35b862902e7f7b2fc6"
+    "6c377b61e1047460136b61fdb05c192570712b7797b284468fc7ded96e1ac760"
     "pkg2zip.exe"
 )
 

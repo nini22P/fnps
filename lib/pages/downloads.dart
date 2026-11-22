@@ -1,19 +1,22 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:fnps/downloader/downloader.dart';
+import 'package:fnps/hive/hive_box_names.dart';
+import 'package:fnps/models/config.dart';
+import 'package:fnps/models/content.dart';
+import 'package:fnps/models/download_item.dart';
+import 'package:fnps/pages/content_page/content_page.dart';
+import 'package:fnps/provider/config_provider.dart';
 import 'package:fnps/utils/content_info.dart';
+import 'package:fnps/utils/file_size_convert.dart';
+import 'package:fnps/utils/get_localizations.dart';
 import 'package:fnps/utils/logger.dart';
 import 'package:fnps/utils/open_explorer.dart';
 import 'package:fnps/widgets/custom_badge.dart';
 import 'package:fnps/widgets/downloads_clear_menu.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
-import 'package:fnps/downloader/downloader.dart';
-import 'package:fnps/hive/hive_box_names.dart';
-import 'package:fnps/models/content.dart';
-import 'package:fnps/models/download_item.dart';
-import 'package:fnps/pages/content_page/content_page.dart';
-import 'package:fnps/utils/file_size_convert.dart';
-import 'package:fnps/utils/get_localizations.dart';
+import 'package:provider/provider.dart';
 
 class Downloads extends HookWidget {
   const Downloads({super.key});
@@ -22,6 +25,11 @@ class Downloads extends HookWidget {
   Widget build(BuildContext context) {
     final t = getLocalizations(context);
     final downloader = useMemoized(() => Downloader.instance);
+
+    final pkg2zipOutputMode = context.select<ConfigProvider, Pkg2zipOutputMode>(
+      (provider) => provider.config.pkg2zipOutputMode,
+    );
+    final bool isFolder = pkg2zipOutputMode == Pkg2zipOutputMode.folder;
 
     final psvBox = Hive.box<Content>(psvBoxName);
     final pspBox = Hive.box<Content>(pspBoxName);
@@ -69,48 +77,56 @@ class Downloads extends HookWidget {
       body: ListView.builder(
         itemCount: apps.length,
         itemBuilder: (context, index) {
-          final content = apps[index];
+          final Content content = apps[index];
 
-          final currentDownloads = downloads
+          final List<DownloadItem> currentDownloads = downloads
               .where((item) => item.content.titleID == content.titleID)
               .toList();
 
-          final contents = currentDownloads
-              .map((item) => item.content)
-              .toList();
+          int completedCount = 0;
+          int allDownloadLength = 0;
+          int completedDownloadLength = 0;
+          bool isDownloading = false;
+          bool isQueued = false;
+          bool isExtracting = false;
+          bool hasFailed = false;
+          final List<Content> incompletedContents = <Content>[];
+          final List<Content> allContents = <Content>[];
 
-          final currentCompletedDownloads = currentDownloads.where(
-            (item) => [
-              ExtractStatus.completed,
-              ExtractStatus.notNeeded,
-            ].contains(item.extractStatus),
-          );
+          for (final DownloadItem item in currentDownloads) {
+            allContents.add(item.content);
+            allDownloadLength += item.totalLength;
+            completedDownloadLength += item.completedLength;
 
-          bool isDownloading = currentDownloads.any(
-            (item) => item.downloadStatus == DownloadStatus.downloading,
-          );
+            final bool itemDone =
+                item.extractStatus == ExtractStatus.completed ||
+                item.extractStatus == ExtractStatus.notNeeded;
+            if (itemDone) {
+              completedCount++;
+            } else {
+              incompletedContents.add(item.content);
+            }
 
-          bool isExtracting = currentDownloads.any(
-            (item) => item.extractStatus == ExtractStatus.extracting,
-          );
+            if (item.downloadStatus == DownloadStatus.downloading) {
+              isDownloading = true;
+            } else if (item.downloadStatus == DownloadStatus.queued) {
+              isQueued = true;
+            } else if (item.downloadStatus == DownloadStatus.failed) {
+              hasFailed = true;
+            } else if (item.downloadStatus == DownloadStatus.completed) {
+              if (item.extractStatus == ExtractStatus.extracting) {
+                isExtracting = true;
+              } else if (item.extractStatus == ExtractStatus.failed) {
+                hasFailed = true;
+              }
+            }
+          }
 
-          final incompletedDownloads = currentDownloads
-              .where(
-                (item) => [
-                  ExtractStatus.queued,
-                  ExtractStatus.extracting,
-                ].contains(item.extractStatus),
-              )
-              .toList();
-
-          final allDownloadLength = currentDownloads
-              .map((item) => item.totalLength)
-              .reduce((value, element) => value + element);
-
-          final completedDownloadLength = currentDownloads
-              .map((item) => item.completedLength)
-              .reduce((value, element) => value + element)
-              .toInt();
+          final String downloadPercent = allDownloadLength > 0
+              ? (completedDownloadLength / allDownloadLength * 100)
+                    .clamp(0.0, 100.0)
+                    .toStringAsFixed(1)
+              : '0.0';
 
           return ListTile(
             leading: ClipRRect(
@@ -137,41 +153,43 @@ class Downloads extends HookWidget {
                 CustomBadge(text: content.platform.name),
                 CustomBadge(text: content.titleID),
                 CustomBadge(
-                  text: incompletedDownloads.isEmpty
+                  text: incompletedContents.isEmpty
                       ? '${fileSizeConv(completedDownloadLength)}'
                       : '${fileSizeConv(completedDownloadLength)} / ${fileSizeConv(allDownloadLength)}',
                 ),
                 CustomBadge(
-                  text:
-                      currentCompletedDownloads.length ==
-                          currentDownloads.length
-                      ? '${currentCompletedDownloads.length}'
-                      : '${currentCompletedDownloads.length} / ${currentDownloads.length}',
+                  text: completedCount == currentDownloads.length
+                      ? '$completedCount'
+                      : '$completedCount / ${currentDownloads.length}',
                 ),
-                if (isExtracting && incompletedDownloads.isEmpty)
-                  CustomBadge(text: t.extracting),
+                if (isDownloading)
+                  CustomBadge(text: '${t.downloading} $downloadPercent%'),
+                if (isExtracting)
+                  CustomBadge(text: isFolder ? t.extracting : t.converting),
+                if (!isDownloading && !isExtracting && isQueued)
+                  CustomBadge(text: t.download_queued),
+                if (!isDownloading && !isExtracting && !isQueued && hasFailed)
+                  CustomBadge(text: t.download_failed),
               ],
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (incompletedDownloads.isNotEmpty)
+                if (incompletedContents.isNotEmpty)
                   isDownloading
                       ? IconButton(
-                          tooltip: isExtracting ? t.extracting : t.pause,
+                          tooltip: t.pause,
                           icon: const Icon(Icons.pause_rounded),
-                          onPressed: () => downloader.pause(contents),
+                          onPressed: () => downloader.pause(allContents),
                         )
                       : IconButton(
                           tooltip: t.download,
                           icon: const Icon(Icons.download_rounded),
-                          onPressed: () => downloader.add(
-                            incompletedDownloads.map((e) => e.content).toList(),
-                          ),
+                          onPressed: () => downloader.add(incompletedContents),
                         ),
-                PopupMenuButton(
+                PopupMenuButton<void>(
                   itemBuilder: (context) => [
-                    PopupMenuItem(
+                    PopupMenuItem<void>(
                       child: Text(t.open_in_folder),
                       onTap: () async {
                         final result = await openExplorer(
@@ -185,11 +203,9 @@ class Downloads extends HookWidget {
                         }
                       },
                     ),
-                    PopupMenuItem(
+                    PopupMenuItem<void>(
                       child: Text(t.delete),
-                      onTap: () => downloader.remove(
-                        currentDownloads.map((e) => e.content).toList(),
-                      ),
+                      onTap: () => downloader.remove(allContents),
                     ),
                   ],
                 ),
